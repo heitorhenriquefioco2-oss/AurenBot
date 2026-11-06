@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.5, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.6, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -9,7 +9,7 @@ Extensão Chrome de caçada v3.3.5, com fechamento automático de avisos desde o
 3. Ative **Modo do desenvolvedor**.
 4. Clique em **Carregar sem compactação** e selecione a pasta `AurenBot` que contém o arquivo `manifest.json`.
 5. Desative a versão anterior no Tampermonkey, se estiver instalada. Recarregue a página do Auren para encerrar scripts antigos do console.
-6. Ao carregar, a extensão abre Caçada uma única vez e mantém a caçada pausada. Depois disso você pode navegar pelo jogo livremente; não é necessário colar código no console.
+6. Ao carregar, a extensão abre Caçada uma única vez e prepara o início automático com as configurações salvas. Depois disso você pode navegar pelo jogo livremente; não é necessário colar código no console.
 
 ## Usar
 
@@ -17,20 +17,22 @@ Extensão Chrome de caçada v3.3.5, com fechamento automático de avisos desde o
 - Escolha a vida mínima para atacar e o modo de recuperação.
 - Configure os limites da restauradora e da poção de alívio.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
-- Confira o **Diagnóstico** e clique em **Iniciar**. Antes de começar o ciclo, o bot confere a modalidade **Só o resultado** e a seleciona se necessário. O controle é identificado pelo texto sem ícones, pelo rótulo acessível ou por labels de rádio. Aguarda sua renderização e a confirmação da seleção por até 8 segundos; sem confirmação, mantém a caçada pausada. Pausar, ocultar o painel ou alterar uma configuração cancela essa preparação.
+- Ao carregar, o bot abre **Caçada**, seleciona **Só o resultado** e valida as configurações salvas. Se houver expedição ativa, pergunta em um popup se deseja pausá-la; somente com sua aceitação solicita a pausa, retorna para **Caçada**, reconfirma **Só o resultado** e inicia o ciclo. Sem expedição ativa, inicia diretamente.
+- Sem uma criatura configurada ou com valores inválidos, a preparação para após selecionar a modalidade, antes de pausar a expedição. Preencha o painel, confira **Diagnóstico** se necessário e clique em **Iniciar**. O botão usa a mesma sequência.
+- Pausar, ocultar o painel ou alterar qualquer configuração cancela a preparação. Recusar a pausa mantém a expedição e não inicia a caçada.
 - O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia a vida e repete o ciclo.
 - Para parar, use **Pausar** no painel ou no botão da extensão. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão e em **Abrir painel no jogo**. Isso não inicia a automação.
 
-As configurações são salvas localmente pela extensão neste perfil do Chrome. O estado ativo da caçada não é salvo: após recarregar a página é necessário clicar em Iniciar. Ocultar a aba também pausa a caçada.
+As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot tenta iniciar usando as configurações salvas; uma recusa da pausa vale para a tentativa atual. Uma nova carga executa novamente a preparação e, se necessário, solicita nova confirmação. Ocultar a aba também pausa a caçada.
 
 ## Navegação para Caçada
 
-A navegação inicia em `document_start`, antes de criar o painel do bot. A extensão tenta abrir Caçada uma única vez pelo menu do jogo, aguardando o menu e a tela por até 15 segundos. Só depois exibe o painel, inclusive se for necessário informar uma falha de navegação. Se já estiver nela, não clica. Essa navegação não se repete durante o ciclo ou ao trocar manualmente de aba. Ao clicar em Iniciar, o bot também garante que está na tela correta antes de preparar a caçada. Após a exibição do painel, Pausar ou Ocultar painel cancela uma navegação de preparação em andamento.
+A navegação inicia em `document_start`, antes de criar o painel do bot. A extensão tenta abrir Caçada uma única vez pelo menu do jogo, aguardando o menu e a tela por até 15 segundos. Só depois exibe o painel, inclusive se for necessário informar uma falha de navegação. Se já estiver nela, não clica. Essa navegação não se repete durante o ciclo ou ao trocar manualmente de aba. Na preparação automática e ao clicar em Iniciar, o bot também garante que está na tela correta antes de preparar a caçada. Após a exibição do painel, Pausar ou Ocultar painel cancela uma navegação de preparação em andamento.
 
 ## Expedição ativa ao iniciar
 
-Ao clicar em **Iniciar**, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Cancelar início** mantém a expedição e a caçada não começa.
+Após confirmar **Só o resultado** e validar as configurações, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Cancelar início** mantém a expedição e a caçada não começa.
 
 Com **Pausar expedição e continuar**, o bot aciona o botão na Caçada. Se esse botão apenas abrir Expedição, ele aciona Pausar expedição nessa tela uma única vez e aguarda a confirmação da pausa por até 8 segundos. Depois volta para Caçada pelo menu esquerdo, aguarda a tela carregar, verifica que a expedição não continua ativa e confere **Só o resultado** antes de iniciar o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
 

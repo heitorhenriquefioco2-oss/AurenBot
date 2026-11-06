@@ -272,8 +272,8 @@
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
-    </style><section><h2>Auren • Caçada real v3.3.5</h2>
-    <p>Caçada inicia pausada. O fechamento de avisos já está ativo. Abra a tela de Caçada e confira o diagnóstico.</p>
+    </style><section><h2>Auren • Caçada real v3.3.6</h2>
+    <p>Preparação automática ao carregar: Caçada → Só o resultado → verificar expedição → iniciar com as configurações salvas.</p>
     <label>Nome exato da criatura<input id="criatura" placeholder="Golem de entulho" maxlength="100"></label>
     <label>Recuperação<select id="modo"><option value="pocao">Usar poções</option><option value="natural">Somente regeneração automática</option></select></label>
     <div class="grid"><label>Atacar a partir de (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label><label>Restauradora se vida ≤ (%)<input id="limite" type="text" inputmode="decimal" value="30"></label></div>
@@ -283,12 +283,15 @@
     <label>Esperar quando faltar até (pontos percentuais)<input id="margem" type="text" inputmode="decimal" value="5"></label>
     <small>Ex.: alvo 80%, margem 5 → de 75% a 80%, aguardar. Sem a poção escolhida, aguardar regeneração.</small>
     <nav><button id="diagnostico">Diagnóstico</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
-    <div id="confirmacaoExpedicao" role="group" aria-label="Expedição ativa" hidden>
+    <div id="confirmacaoExpedicao" role="dialog" aria-modal="true" aria-label="Expedição ativa" hidden>
       <p>Seu herói está em expedição. Deseja pausar a expedição para iniciar a caçada? Ela não será retomada automaticamente pelo bot.</p>
       <nav><button id="aceitarExpedicao">Pausar expedição e continuar</button><button id="cancelarExpedicao">Cancelar início</button></nav>
     </div>
     <output id="status" aria-live="polite">Caçada pausada. Fechamento de avisos ativo.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
+  const estiloPopup = document.createElement('style');
+  estiloPopup.textContent = '#confirmacaoExpedicao:not([hidden]){position:fixed;top:30vh;left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));padding:20px;background:#141d24;border:1px solid #b99b60;border-radius:10px;box-shadow:0 0 0 100vmax #0009;z-index:1}';
+  root.appendChild(estiloPopup);
   const ui = id => root.getElementById(id);
   let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
   const linhas = [];
@@ -375,13 +378,16 @@
     if (timer || preparacao || removido) return;
     const token = {};
     try {
-      config = lerConfig();
       if (pendente && Date.now() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('Ação anterior sem confirmação. Confira o jogo e recarregue a página antes de reiniciar.');
       preparacao = token;
       ui('iniciar').disabled = true;
       status('Preparando a caçada.');
       if (!(await navegarCacada(() => preparacao === token && !removido))) return;
       if (preparacao !== token) return;
+      if (!(await prepararModalidade(token))) return;
+      if (preparacao !== token) return;
+      // Não pausa uma expedição se ainda faltam configurações para caçar.
+      config = lerConfig();
       if (!(await prepararExpedicao(token))) return;
       if (preparacao !== token) return;
       if (!(await prepararModalidade(token))) return;
@@ -431,6 +437,7 @@
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
     if (document.hidden && timer) pausar('Aba oculta. Retome ao voltar ao jogo.');
   });
-  console.info('Auren v3.3.5 instalado. Caçada pausada; fechamento de avisos ativo. API: window.aurenCacada. Comece pelo botão Diagnóstico.');
+  console.info('Auren instalado. Iniciando preparação automática. API: window.aurenCacada.');
+  if (!erroNavegacaoInicial) iniciar();
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 

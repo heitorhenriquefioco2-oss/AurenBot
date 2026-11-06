@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Auren — Caçada v3.3.5",
-  "version": "3.3.5",
+  "name": "Auren — Caçada v3.3.6",
+  "version": "3.3.6",
   "description": "Painel de caçada com seleção de criatura, limites de vida e economia de poções.",
   "permissions": [
     "storage"
