@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Auren — Caçada v3.3.9",
-  "version": "3.3.9",
+  "name": "Auren — Caçada v3.3.10",
+  "version": "3.3.10",
   "description": "Escolha sua criatura, cuide da vida do herói e economize poções durante as caçadas.",
   "permissions": [
     "storage"

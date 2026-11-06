@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.9, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.10, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -26,6 +26,10 @@ Extensão Chrome de caçada v3.3.9, com fechamento automático de avisos desde o
 - Para reabrir o painel oculto, clique no ícone da extensão. Ele abre diretamente o painel no jogo, sem popup intermediário e sem iniciar a automação.
 
 As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Uma recusa da pausa cancela a tentativa de início atual. Ocultar a aba também pausa a caçada.
+
+## Mover o painel
+
+Arraste o título do painel com o mouse ou o dedo para posicioná-lo onde preferir. Os campos e botões continuam funcionando normalmente. O título fica dentro da tela para você poder mover o painel de novo. Ao recarregar o jogo, ele volta à posição inicial.
 
 ## Navegação para Caçada
 

@@ -278,7 +278,8 @@
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
-    </style><section><h2>Auren • Seu assistente de caçada v3.3.9</h2>
+    #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.10</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar da vida do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -301,6 +302,44 @@
   estiloPopup.textContent = '#confirmacaoExpedicao:not([hidden]){position:fixed;top:30vh;left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));padding:20px;background:#141d24;border:1px solid #b99b60;border-radius:10px;box-shadow:0 0 0 100vmax #0009;z-index:1}';
   root.appendChild(estiloPopup);
   const ui = id => root.getElementById(id);
+  const cabecalho = ui('moverPainel');
+  let arrasto = null;
+  function posicionarPainel(x, y) {
+    const margem = 8;
+    const largura = host.getBoundingClientRect().width;
+    const alturaTitulo = cabecalho.getBoundingClientRect().height + 30;
+    const esquerda = Math.max(margem, Math.min(x, innerWidth - largura - margem));
+    const topo = Math.max(margem, Math.min(y, innerHeight - alturaTitulo - margem));
+    host.style.right = 'auto';
+    host.style.left = esquerda + 'px';
+    host.style.top = topo + 'px';
+    root.querySelector('section').style.maxHeight = Math.max(alturaTitulo, innerHeight - topo - margem) + 'px';
+  }
+  cabecalho.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0 || !ui('confirmacaoExpedicao').hidden) return;
+    const caixa = host.getBoundingClientRect();
+    arrasto = { id: event.pointerId, x: event.clientX - caixa.left, y: event.clientY - caixa.top };
+    cabecalho.setPointerCapture(event.pointerId);
+    cabecalho.setAttribute('data-arrastando', '');
+    event.preventDefault();
+  });
+  cabecalho.addEventListener('pointermove', event => {
+    if (arrasto?.id === event.pointerId) posicionarPainel(event.clientX - arrasto.x, event.clientY - arrasto.y);
+  });
+  function terminarArrasto(event) {
+    if (arrasto?.id !== event.pointerId) return;
+    arrasto = null;
+    cabecalho.removeAttribute('data-arrastando');
+    if (cabecalho.hasPointerCapture(event.pointerId)) cabecalho.releasePointerCapture(event.pointerId);
+  }
+  cabecalho.addEventListener('pointerup', terminarArrasto);
+  cabecalho.addEventListener('pointercancel', terminarArrasto);
+  cabecalho.addEventListener('lostpointercapture', terminarArrasto);
+  window.addEventListener('resize', () => {
+    if (host.hidden || !host.style.left) return;
+    const caixa = host.getBoundingClientRect();
+    posicionarPainel(caixa.left, caixa.top);
+  });
   let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
   const linhas = [];
   function status(msg) {
@@ -443,6 +482,10 @@
     if (sender.id !== chrome.runtime.id || !msg || msg.origem !== 'auren-popup-v33') return;
     if (msg.comando === 'abrir') {
       host.hidden = false;
+      if (host.style.left) {
+        const caixa = host.getBoundingClientRect();
+        posicionarPainel(caixa.left, caixa.top);
+      }
       responder({ ok: true, mensagem: 'Painel aberto. Use Iniciar no painel para executar.' });
     } else if (msg.comando === 'pausar') {
       pausar('Pausado pelo botão da extensão.');
