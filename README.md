@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.8, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.9, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -33,9 +33,9 @@ O item do menu é localizado prioritariamente pelo título exato `title="Caçada
 
 ## Expedição ativa ao iniciar
 
-Após confirmar **Só o resultado** e validar as configurações, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Cancelar início** mantém a expedição e a caçada não começa.
+Após confirmar **Só o resultado** e validar as configurações, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Não, manter a expedição** mantém a expedição e a caçada não começa.
 
-Com **Pausar expedição e continuar**, o bot aciona o botão na Caçada. Se esse botão apenas abrir Expedição, ele aciona Pausar expedição nessa tela uma única vez e aguarda a confirmação da pausa por até 8 segundos. Depois volta para Caçada pelo menu esquerdo, aguarda a tela carregar, verifica que a expedição não continua ativa e confere **Só o resultado** antes de iniciar o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
+Com **Sim, pausar e começar a caçar**, o bot aciona o botão na Caçada. Se esse botão apenas abrir Expedição, ele aciona Pausar expedição nessa tela uma única vez e aguarda a confirmação da pausa por até 8 segundos. Depois volta para Caçada pelo menu esquerdo, aguarda a tela carregar, verifica que a expedição não continua ativa e confere **Só o resultado** antes de iniciar o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
 
 Pausar, ocultar o painel ou alterar as configurações cancela uma preparação em andamento, inclusive enquanto a pergunta estiver aberta. O fechamento automático de avisos não responde essa pergunta, pois ela fica dentro do painel da extensão.
 
