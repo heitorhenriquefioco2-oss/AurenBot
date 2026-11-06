@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.3, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.4, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -9,7 +9,7 @@ Extensão Chrome de caçada v3.3.3, com fechamento automático de avisos desde o
 3. Ative **Modo do desenvolvedor**.
 4. Clique em **Carregar sem compactação** e selecione a pasta `AurenBot` que contém o arquivo `manifest.json`.
 5. Desative a versão anterior no Tampermonkey, se estiver instalada. Recarregue a página do Auren para encerrar scripts antigos do console.
-6. Abra a tela de Caçada. O painel aparece pausado; não é necessário colar código no console.
+6. Ao carregar, a extensão abre Caçada uma única vez e mantém a caçada pausada. Depois disso você pode navegar pelo jogo livremente; não é necessário colar código no console.
 
 ## Usar
 
@@ -24,11 +24,15 @@ Extensão Chrome de caçada v3.3.3, com fechamento automático de avisos desde o
 
 As configurações são salvas localmente pela extensão neste perfil do Chrome. O estado ativo da caçada não é salvo: após recarregar a página é necessário clicar em Iniciar. Ocultar a aba também pausa a caçada.
 
+## Navegação para Caçada
+
+No carregamento, a extensão tenta abrir Caçada uma única vez pelo menu do jogo, aguardando a tela por até 8 segundos. Se já estiver nela, não clica. Essa navegação não se repete durante o ciclo ou ao trocar manualmente de aba. Ao clicar em Iniciar, o bot também garante que está na tela correta antes de preparar a caçada. Pausar ou ocultar o painel cancela uma navegação em andamento.
+
 ## Expedição ativa ao iniciar
 
 Ao clicar em **Iniciar**, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Cancelar início** mantém a expedição e a caçada não começa.
 
-Com **Pausar expedição e continuar**, o bot aciona uma única vez o botão do jogo e aguarda até 8 segundos pelo desaparecimento do estado de expedição e pela presença do controle de modalidade. Só depois confere **Só o resultado** e inicia o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
+Com **Pausar expedição e continuar**, o bot aciona o botão na Caçada. Se esse botão apenas abrir Expedição, ele aciona Pausar expedição nessa tela uma única vez e aguarda a confirmação da pausa por até 8 segundos. Depois volta para Caçada pelo menu esquerdo, aguarda a tela carregar, verifica que a expedição não continua ativa e confere **Só o resultado** antes de iniciar o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
 
 Pausar, ocultar o painel ou alterar as configurações cancela uma preparação em andamento, inclusive enquanto a pergunta estiver aberta. O fechamento automático de avisos não responde essa pergunta, pois ela fica dentro do painel da extensão.
 
