@@ -7,10 +7,6 @@
   }
   let preferencias = {};
   let erroArmazenamento = false;
-  try {
-    const salvo = await chrome.storage.local.get('aurenPreferenciasV33');
-    if (salvo.aurenPreferenciasV33 && typeof salvo.aurenPreferenciasV33 === 'object') preferencias = salvo.aurenPreferenciasV33;
-  } catch { erroArmazenamento = true; }
 
   const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const texto = el => normal(el && [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')].filter(Boolean).join(' '));
@@ -79,10 +75,27 @@
   function botoes() { return todos('button, [role="button"]', document.querySelector('main') || document); }
   function botaoAtacar() {
     if (seletores.atacar) return unico(todos(seletores.atacar));
-    return unico(botoes().filter(el => /^(cacar e ver resultado|cacar|atacar|batalhar)$/.test(normal(el.textContent))));
+    return unico(botoes().filter(el => /^(cacar e ver resultado|cacar|atacar|batalhar|enfrentar monstro)$/.test(rotuloControle(el))));
+  }
+  function rotuloControle(el) {
+    const copia = el.cloneNode(true);
+    copia.querySelectorAll('svg, img, [aria-hidden="true"], kbd, script, style').forEach(no => no.remove());
+    return normal(copia.textContent);
   }
   function botaoSoResultado() {
-    return unico(todos('button, [role="button"], [role="tab"], [role="radio"]').filter(el => nomeExato(el, 'so o resultado')));
+    const alvo = v => /^so(?: o)? resultado$/.test(normal(v));
+    const acionaveis = 'button,a,label,[role="button"],[role="tab"],[role="radio"],[tabindex]';
+    const candidatos = new Set();
+    for (const el of todos(acionaveis + ',span,strong,div')) {
+      const direto = alvo(el.getAttribute('aria-label')) || alvo(el.getAttribute('title')) || alvo(el.textContent);
+      if (!direto && !(el.matches(acionaveis) && el.textContent.length < 300 && alvo(rotuloControle(el)))) continue;
+      // Também aceita rótulos clicáveis sem role; o clique propaga ao componente.
+      const componente = el.closest('[class*="mode"],[class*="option"],[class*="toggle"],[class*="tab"]');
+      const controle = el.closest(acionaveis) || (componente && alvo(rotuloControle(componente)) ? componente : el);
+      if (controle && visivel(controle)) candidatos.add(controle);
+    }
+    const xs = [...candidatos];
+    return unico(xs.filter(el => !xs.some(outro => outro !== el && el.contains(outro))));
   }
   function telaExpedicao() {
     return todos('h1,h2,[role="heading"]').some(el => normal(el.textContent) === 'expedicao');
@@ -91,21 +104,22 @@
     return !telaExpedicao() && (!!botaoSoResultado() || todos('h1,h2,[role="heading"]').some(el => normal(el.textContent) === 'cacada'));
   }
   function menuCacada() {
-    const controles = todos('a,button,[role="button"],[role="link"]').filter(el => nomeExato(el, 'cacada'));
+    const controles = todos('a,button,[role="button"],[role="link"]').filter(el =>
+      nomeExato(el, 'cacada') || rotuloControle(el) === 'cacada');
     const laterais = controles.filter(el => el.closest('aside,nav,[role="navigation"]'));
     return unico(laterais.length ? laterais : controles);
   }
-  async function navegarCacada(valido) {
+  async function navegarCacada(valido, reportar = status, prazo = 8000) {
     const inicio = Date.now();
     let clicado = false;
     while (valido()) {
       if (telaCacada()) return true;
-      if (Date.now() - inicio > 8000) throw Error('Não foi possível abrir Caçada em 8s. Abra a aba pelo menu esquerdo e tente novamente.');
+      if (Date.now() - inicio > prazo) throw Error('Não foi possível abrir Caçada. Abra a aba pelo menu esquerdo e tente novamente.');
       if (!window.aurenAvisos?.verificar() && !clicado) {
         const botao = menuCacada();
         if (botao && clicar(botao)) {
           clicado = true;
-          status('Abrindo Caçada pelo menu. Aguardando a tela carregar.');
+          reportar('Abrindo Caçada pelo menu. Aguardando a tela carregar.');
         }
       }
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -170,8 +184,10 @@
   function modoResultadoConfirmado(botao) {
     if (!botao) return false;
     const marcas = ['aria-selected', 'aria-pressed', 'aria-checked', 'data-selected'];
+    const radio = botao.matches('label') ? (botao.control || botao.querySelector('input[type="radio"]')) : botao.querySelector('input[type="radio"]');
+    if (radio?.checked) return true;
     if (marcas.some(a => botao.getAttribute(a) === 'true') || botao.getAttribute('data-state') === 'active' ||
-        /(^|\s)(selected|is-selected|active|is-active)(\s|$)/.test(botao.className || '')) return true;
+        /(^|[\s_-])(selected|active|checked)($|[\s_-])/.test(botao.className || '')) return true;
     if (marcas.some(a => botao.getAttribute(a) === 'false')) return false;
     // Algumas versões indicam a modalidade apenas pelo texto do botão de caçar.
     return todos('button, [role="button"]', document.querySelector('main') || document)
@@ -184,9 +200,8 @@
       if (Date.now() - inicio > 8000) throw Error('Não foi possível confirmar Só o resultado em 8s. Confira a tela de Caçada e tente novamente.');
       if (!window.aurenAvisos?.verificar()) {
         const botao = botaoSoResultado();
-        if (!botao) throw Error('Opção Só o resultado ausente ou ambígua. Abra a tela de Caçada e tente novamente.');
-        if (modoResultadoConfirmado(botao)) return true;
-        if (!clicado && clicar(botao)) {
+        if (botao && modoResultadoConfirmado(botao)) return true;
+        if (botao && !clicado && clicar(botao)) {
           clicado = true;
           status('Selecionando Só o resultado. Aguardando confirmação antes de iniciar a caçada.');
         }
@@ -241,13 +256,23 @@
     return el ? { tag: el.tagName, texto: texto(el).slice(0, 140), habilitado: habilitado(el), selecionada: selecionada(el) } : null;
   }
 
+  // A navegação inicial termina antes de criar/exibir a interface do bot.
+  let erroNavegacaoInicial = '';
+  try {
+    await navegarCacada(() => true, msg => console.info('[Auren início]', msg), 15000);
+  } catch (error) { erroNavegacaoInicial = error.message; }
+  try {
+    const salvo = await chrome.storage.local.get('aurenPreferenciasV33');
+    if (salvo.aurenPreferenciasV33 && typeof salvo.aurenPreferenciasV33 === 'object') preferencias = salvo.aurenPreferenciasV33;
+  } catch { erroArmazenamento = true; }
+
   const host = document.createElement('div');
   host.id = 'auren-cacada-v3';
   host.style.cssText = 'position:fixed;right:16px;top:70px;width:min(390px,calc(100vw - 32px));z-index:2147483647';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
-    </style><section><h2>Auren • Caçada real v3.3.4</h2>
+    </style><section><h2>Auren • Caçada real v3.3.5</h2>
     <p>Caçada inicia pausada. O fechamento de avisos já está ativo. Abra a tela de Caçada e confira o diagnóstico.</p>
     <label>Nome exato da criatura<input id="criatura" placeholder="Golem de entulho" maxlength="100"></label>
     <label>Recuperação<select id="modo"><option value="pocao">Usar poções</option><option value="natural">Somente regeneração automática</option></select></label>
@@ -265,7 +290,7 @@
     <output id="status" aria-live="polite">Caçada pausada. Fechamento de avisos ativo.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
-  let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null, navegacaoInicial = true;
+  let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
   const linhas = [];
   function status(msg) {
     ui('status').textContent = `${timer ? 'Ativo' : 'Pausado'} • ${msg}`;
@@ -282,7 +307,6 @@
     return c;
   }
   function pausar(msg = 'Pausado pelo jogador.') {
-    navegacaoInicial = false;
     preparacao?.responderExpedicao?.(false);
     preparacao = null;
     clearInterval(timer); timer = null; ui('iniciar').disabled = false; status(msg);
@@ -349,7 +373,6 @@
   }
   async function iniciar() {
     if (timer || preparacao || removido) return;
-    navegacaoInicial = false;
     const token = {};
     try {
       config = lerConfig();
@@ -403,14 +426,11 @@
     }
   });
   if (erroArmazenamento) status('Não foi possível carregar as configurações salvas. Usando valores iniciais.');
+  if (erroNavegacaoInicial) status(erroNavegacaoInicial);
   document.addEventListener('visibilitychange', function oculto() {
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
     if (document.hidden && timer) pausar('Aba oculta. Retome ao voltar ao jogo.');
   });
-  console.info('Auren v3.3.4 instalado. Caçada pausada; fechamento de avisos ativo. API: window.aurenCacada. Comece pelo botão Diagnóstico.');
-  // Uma navegação inicial, sem observador que mantenha o usuário nesta tela.
-  navegarCacada(() => navegacaoInicial && !removido).catch(error => {
-    if (navegacaoInicial && !timer && !preparacao) status(error.message);
-  }).finally(() => { navegacaoInicial = false; });
+  console.info('Auren v3.3.5 instalado. Caçada pausada; fechamento de avisos ativo. API: window.aurenCacada. Comece pelo botão Diagnóstico.');
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 
