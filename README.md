@@ -1,6 +1,6 @@
 # AurenBot
 
-Primeira publicação do AurenBot no GitHub, baseada na extensão Chrome de caçada v3.3.0.
+Extensão Chrome de caçada v3.3.1, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -22,7 +22,20 @@ Primeira publicação do AurenBot no GitHub, baseada na extensão Chrome de caç
 - Para parar, use **Pausar** no painel ou no botão da extensão. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão e em **Abrir painel no jogo**. Isso não inicia a automação.
 
-As configurações são salvas localmente pela extensão neste perfil do Chrome. O estado ativo não é salvo: após recarregar a página é necessário clicar em Iniciar. Ocultar a aba também pausa o bot.
+As configurações são salvas localmente pela extensão neste perfil do Chrome. O estado ativo da caçada não é salvo: após recarregar a página é necessário clicar em Iniciar. Ocultar a aba também pausa a caçada.
+
+## Fechamento automático de avisos
+
+O fechamento inicia em `document_start`, antes do painel, e faz uma primeira verificação imediatamente. Um observador detecta alterações na página, com uma verificação adicional a cada 700 ms e antes de cada ciclo da caçada. Ele continua ativo com a caçada pausada ou o painel oculto.
+
+- Resultados de atividades, incluindo vitória e derrota da Arena Livre: usa o botão `activity-result-continue` dentro de `activity-result-dialog`.
+- Avisos em diálogos, modais e notificações: reconhece um único botão de dispensar, como Fechar, Entendi, OK ou ×. Também reconhece Entendi em tutoriais inline.
+- O resultado da própria caçada permanece sob controle do ciclo original, para preservar a confirmação do ataque.
+- Aguarda botões habilitados e limita tentativas de fechamento. Enquanto um aviso reconhecido permanece aberto, o ciclo não clica por trás dele.
+
+O observador atua assim que a janela entra na página; não impede que o jogo a crie. O aviso específico de atualização ainda depende da identificação do seu HTML. Botões genéricos de confirmar ou comprar não são acionados.
+
+Pausar e Ocultar painel interrompem apenas a caçada. Para interromper também o fechamento de avisos, desative a extensão e recarregue o jogo.
 
 ## Exemplo
 
