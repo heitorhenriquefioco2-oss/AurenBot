@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.1, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.2, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -17,7 +17,7 @@ Extensão Chrome de caçada v3.3.1, com fechamento automático de avisos desde o
 - Escolha a vida mínima para atacar e o modo de recuperação.
 - Configure os limites da restauradora e da poção de alívio.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
-- Confira o **Diagnóstico** e clique em **Iniciar**.
+- Confira o **Diagnóstico** e clique em **Iniciar**. Antes de começar o ciclo, o bot confere a modalidade **Só o resultado** e a seleciona se necessário. Aguarda a confirmação da seleção por até 8 segundos; sem confirmação, mantém a caçada pausada. Pausar, ocultar o painel ou alterar uma configuração cancela essa preparação.
 - O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia a vida e repete o ciclo.
 - Para parar, use **Pausar** no painel ou no botão da extensão. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão e em **Abrir painel no jogo**. Isso não inicia a automação.
@@ -54,3 +54,4 @@ A extensão atua somente em `https://auren-online.com/` e `https://www.auren-onl
 Não execute o script de console junto com a extensão, nem duas versões da extensão na mesma página. Em uma atualização, clique em Recarregar na página de extensões e depois recarregue o jogo.
 
 O painel e as regras vêm da versão 3.3. Alterações futuras na interface do jogo podem exigir atualização dos seletores. A extensão mantém a pausa diante de elementos ambíguos ou falta de confirmação.
+
