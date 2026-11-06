@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.2, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.3, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -23,6 +23,14 @@ Extensão Chrome de caçada v3.3.2, com fechamento automático de avisos desde o
 - Para reabrir o painel oculto, clique no ícone da extensão e em **Abrir painel no jogo**. Isso não inicia a automação.
 
 As configurações são salvas localmente pela extensão neste perfil do Chrome. O estado ativo da caçada não é salvo: após recarregar a página é necessário clicar em Iniciar. Ocultar a aba também pausa a caçada.
+
+## Expedição ativa ao iniciar
+
+Ao clicar em **Iniciar**, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Cancelar início** mantém a expedição e a caçada não começa.
+
+Com **Pausar expedição e continuar**, o bot aciona uma única vez o botão do jogo e aguarda até 8 segundos pelo desaparecimento do estado de expedição e pela presença do controle de modalidade. Só depois confere **Só o resultado** e inicia o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
+
+Pausar, ocultar o painel ou alterar as configurações cancela uma preparação em andamento, inclusive enquanto a pergunta estiver aberta. O fechamento automático de avisos não responde essa pergunta, pois ela fica dentro do painel da extensão.
 
 ## Fechamento automático de avisos
 

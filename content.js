@@ -84,6 +84,51 @@
   function botaoSoResultado() {
     return unico(todos('button, [role="button"], [role="tab"], [role="radio"]').filter(el => nomeExato(el, 'so o resultado')));
   }
+  function estadoExpedicao() {
+    const controles = todos('button, [role="button"]').filter(el => nomeExato(el, 'pausar expedicao'));
+    const aviso = todos('h1,h2,h3,h4,p,strong,span,div').some(el => normal(el.textContent) === 'heroi em expedicao');
+    return { ativa: controles.length > 0 || aviso, botao: unico(controles) };
+  }
+  function perguntarExpedicao(token) {
+    status('Expedição ativa. Escolha se deseja pausá-la para iniciar a caçada.');
+    ui('confirmacaoExpedicao').hidden = false;
+    ui('aceitarExpedicao').focus();
+    return new Promise(resolve => {
+      token.responderExpedicao = aceitar => {
+        delete token.responderExpedicao;
+        ui('confirmacaoExpedicao').hidden = true;
+        ui('aceitarExpedicao').onclick = null;
+        ui('cancelarExpedicao').onclick = null;
+        resolve(aceitar);
+      };
+      ui('aceitarExpedicao').onclick = () => token.responderExpedicao?.(true);
+      ui('cancelarExpedicao').onclick = () => token.responderExpedicao?.(false);
+    });
+  }
+  async function prepararExpedicao(token) {
+    if (!estadoExpedicao().ativa) return true;
+    if (!(await perguntarExpedicao(token))) {
+      if (preparacao === token) pausar('Início cancelado. A expedição foi mantida.');
+      return false;
+    }
+    if (preparacao !== token) return false;
+    const inicio = Date.now();
+    let clicado = false;
+    while (preparacao === token && !removido) {
+      if (Date.now() - inicio > 8000) throw Error('Pausa da expedição não confirmada em 8s. Confira o jogo antes de iniciar novamente.');
+      if (!window.aurenAvisos?.verificar()) {
+        const expedicao = estadoExpedicao();
+        if (!expedicao.ativa && botaoSoResultado()) return true;
+        if (expedicao.ativa && !expedicao.botao) throw Error('Botão Pausar expedição ausente ou ambíguo. A caçada continua pausada.');
+        if (!clicado && expedicao.botao && clicar(expedicao.botao)) {
+          clicado = true;
+          status('Pausa da expedição solicitada. Aguardando confirmação do jogo.');
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return false;
+  }
   function modoResultadoConfirmado(botao) {
     if (!botao) return false;
     const marcas = ['aria-selected', 'aria-pressed', 'aria-checked', 'data-selected'];
@@ -164,7 +209,7 @@
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
-    </style><section><h2>Auren • Caçada real v3.3.2</h2>
+    </style><section><h2>Auren • Caçada real v3.3.3</h2>
     <p>Caçada inicia pausada. O fechamento de avisos já está ativo. Abra a tela de Caçada e confira o diagnóstico.</p>
     <label>Nome exato da criatura<input id="criatura" placeholder="Golem de entulho" maxlength="100"></label>
     <label>Recuperação<select id="modo"><option value="pocao">Usar poções</option><option value="natural">Somente regeneração automática</option></select></label>
@@ -175,6 +220,10 @@
     <label>Esperar quando faltar até (pontos percentuais)<input id="margem" type="text" inputmode="decimal" value="5"></label>
     <small>Ex.: alvo 80%, margem 5 → de 75% a 80%, aguardar. Sem a poção escolhida, aguardar regeneração.</small>
     <nav><button id="diagnostico">Diagnóstico</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
+    <div id="confirmacaoExpedicao" role="group" aria-label="Expedição ativa" hidden>
+      <p>Seu herói está em expedição. Deseja pausar a expedição para iniciar a caçada? Ela não será retomada automaticamente pelo bot.</p>
+      <nav><button id="aceitarExpedicao">Pausar expedição e continuar</button><button id="cancelarExpedicao">Cancelar início</button></nav>
+    </div>
     <output id="status" aria-live="polite">Caçada pausada. Fechamento de avisos ativo.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
@@ -195,6 +244,7 @@
     return c;
   }
   function pausar(msg = 'Pausado pelo jogador.') {
+    preparacao?.responderExpedicao?.(false);
     preparacao = null;
     clearInterval(timer); timer = null; ui('iniciar').disabled = false; status(msg);
     // Preserva ação pendente: pausar/retomar não autoriza repetir um clique sem confirmação.
@@ -267,6 +317,8 @@
       preparacao = token;
       ui('iniciar').disabled = true;
       status('Conferindo a modalidade Só o resultado antes de iniciar.');
+      if (!(await prepararExpedicao(token))) return;
+      if (preparacao !== token) return;
       if (!(await prepararModalidade(token))) return;
       if (preparacao !== token) return;
       preparacao = null;
@@ -313,6 +365,6 @@
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
     if (document.hidden && timer) pausar('Aba oculta. Retome ao voltar ao jogo.');
   });
-  console.info('Auren v3.3.2 instalado. Caçada pausada; fechamento de avisos ativo. API: window.aurenCacada. Comece pelo botão Diagnóstico.');
+  console.info('Auren v3.3.3 instalado. Caçada pausada; fechamento de avisos ativo. API: window.aurenCacada. Comece pelo botão Diagnóstico.');
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 
