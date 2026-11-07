@@ -279,7 +279,7 @@
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.10</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.11</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar da vida do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -357,6 +357,7 @@
     return c;
   }
   function pausar(msg = 'Você pausou a caçada. Clique em Iniciar quando quiser continuar.') {
+    try { sessionStorage.removeItem('aurenRetomadaAtualizacaoV1'); } catch {}
     preparacao?.responderExpedicao?.(false);
     preparacao = null;
     clearInterval(timer); timer = null; ui('iniciar').disabled = false; status(msg);
@@ -457,7 +458,20 @@
     }
   }
   function fechar() { pausar('Painel oculto e caçada pausada. Clique no ícone da extensão para abrir o painel de novo.'); host.hidden = true; }
-  const api = { iniciar, pausar, fechar, diagnostico, decidir, seletores };
+  function prepararAtualizacao() {
+    if (!timer || !config) return;
+    try {
+      sessionStorage.setItem('aurenRetomadaAtualizacaoV1', JSON.stringify({
+        versao: 1, criadoEm: Date.now(), config,
+        pendente: pendente ? { ...pendente } : null
+      }));
+      clearInterval(timer); timer = null;
+      status('O jogo vai atualizar. Vou retomar sua caçada assim que a página carregar.');
+    } catch {
+      console.warn('Não foi possível salvar a retomada. Após atualizar o jogo, clique em Iniciar.');
+    }
+  }
+  const api = { iniciar, pausar, fechar, diagnostico, decidir, seletores, prepararAtualizacao };
   window.aurenCacada = api;
   ui('iniciar').onclick = iniciar; ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
@@ -499,5 +513,23 @@
     if (document.hidden && timer) pausar('Você saiu da aba do jogo, então pausei a caçada. Ao voltar, clique em Iniciar para continuar.');
   });
   console.info('Auren instalado. Caçada pausada até clicar em Iniciar. API: window.aurenCacada.');
+  // Só a atualização acionada pelo bot permite retomar sem clicar em Iniciar.
+  try {
+    const salvo = sessionStorage.getItem('aurenRetomadaAtualizacaoV1');
+    sessionStorage.removeItem('aurenRetomadaAtualizacaoV1');
+    const retomada = salvo ? JSON.parse(salvo) : null;
+    const idade = retomada ? Date.now() - retomada.criadoEm : -1;
+    if (retomada?.versao === 1 && idade >= 0 && idade <= 120000 && retomada.config && !erroNavegacaoInicial) {
+      for (const id of campos) {
+        const valor = retomada.config[id];
+        if (id === 'economizar' && typeof valor === 'boolean') ui(id).checked = valor;
+        else if (typeof valor === 'string' || typeof valor === 'number') ui(id).value = String(valor);
+      }
+      const anterior = retomada.pendente;
+      if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = anterior;
+      status('Jogo atualizado. Retomando sua caçada com as mesmas escolhas…');
+      iniciar();
+    }
+  } catch { status('Não consegui recuperar a caçada anterior. Confira suas escolhas e clique em Iniciar.'); }
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 

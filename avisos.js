@@ -8,13 +8,30 @@
   const tentativas = new Map();
   let ativo = true, agendado = false, verificando = false, total = 0;
 
+  function avisosAtualizacao() {
+    const candidatos = [];
+    for (const botao of document.querySelectorAll('button, [role="button"]')) {
+      if (!visivel(botao) || normal(botao.textContent) !== 'atualizar') continue;
+      let painel = botao.parentElement;
+      for (let nivel = 0; painel && nivel < 8 && painel !== document.body && painel !== document.documentElement; nivel++, painel = painel.parentElement) {
+        const t = normal(painel.textContent);
+        if (t.length > 1200) break;
+        if (!t.includes('nova versao disponivel') || !t.includes('auren online foi atualizado') || !t.includes('recarregue para continuar')) continue;
+        const botoes = [...painel.querySelectorAll('button, [role="button"]')].filter(b => visivel(b) && normal(b.textContent) === 'atualizar');
+        if (botoes.length === 1) candidatos.push({ painel, botao, atualizacao: true });
+        break;
+      }
+    }
+    return candidatos;
+  }
+
   function verificar() {
     if (!ativo || verificando) return false;
     verificando = true;
     try {
       for (const [painel] of tentativas) if (!visivel(painel)) tentativas.delete(painel);
       const paineis = [...document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"], .modal, .toast, [role="alert"]')].filter(visivel);
-      const candidatos = [];
+      const candidatos = avisosAtualizacao();
       for (const painel of paineis) {
         const t = normal(painel.textContent);
         // A confirmação de um ataque pertence exclusivamente ao ciclo da caçada.
@@ -38,11 +55,13 @@
           candidatos.push({ painel: botao, botao });
         }
       }
-      for (const { painel, botao } of candidatos) {
+      for (const { painel, botao, atualizacao } of candidatos) {
         const anterior = tentativas.get(painel) || { n: 0, quando: 0 };
+        if (atualizacao && anterior.n >= 1) continue;
         if (!habilitado(botao) || anterior.n >= 3 || Date.now() - anterior.quando < 1500) continue;
         // Registra antes do clique: uma nova verificação não pode duplicar a ação.
         tentativas.set(painel, { n: anterior.n + 1, quando: Date.now() });
+        if (atualizacao) window.aurenCacada?.prepararAtualizacao();
         botao.click();
         total++;
         console.info('[Auren avisos] Fechamento acionado:', botao);

@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.10, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.11, com fechamento automático de avisos desde o carregamento da página.
 
 ## Instalar
 
@@ -52,7 +52,7 @@ O fechamento inicia em `document_start`, antes do painel, e faz uma primeira ver
 - O resultado da própria caçada permanece sob controle do ciclo original, para preservar a confirmação do ataque.
 - Aguarda botões habilitados e limita tentativas de fechamento. Enquanto um aviso reconhecido permanece aberto, o ciclo não clica por trás dele.
 
-O observador atua assim que a janela entra na página; não impede que o jogo a crie. O aviso específico de atualização ainda depende da identificação do seu HTML. Botões genéricos de confirmar ou comprar não são acionados.
+O observador atua assim que a janela entra na página; não impede que o jogo a crie. O aviso **Nova versão disponível**, com o texto de atualização do Auren Online, é reconhecido mesmo sem marcação de diálogo. O bot clica no botão **Atualizar**, que recarrega o jogo. Se a caçada estava ativa, guarda temporariamente as escolhas e a ação pendente nesta aba e retoma após a recarga. Se estava pausada, continua aguardando Iniciar. A retomada vale por até dois minutos, é usada uma única vez e não se aplica a recargas comuns. Ações ainda sem confirmação continuam sendo acompanhadas para evitar repetir ataques ou poções. Botões genéricos de confirmar ou comprar não são acionados.
 
 Pausar e Ocultar painel interrompem apenas a caçada. Para interromper também o fechamento de avisos, desative a extensão e recarregue o jogo.
 
