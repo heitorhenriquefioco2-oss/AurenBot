@@ -279,7 +279,7 @@
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.12</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.14</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar da vida do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -292,6 +292,8 @@
     <small>Exemplo: para caçar com 80%, esperar 5 significa aguardar a vida subir de 75% para 80%, sem gastar poção. Essa espera tem prioridade sobre o uso de poções. Se a poção não estiver disponível, o bot também espera.</small>
     <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar quando a aba estiver oculta</label>
     <small id="ajudaContinuarOculta">Útil em VPS ao desconectar o RDP. Mantenha o jogo e o Chrome abertos. O navegador pode reduzir a frequência dos ciclos em segundo plano.</small>
+    <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Reiniciar automaticamente após uma parada por erro</label>
+    <small id="ajudaReinicio">Após clicar em Iniciar, verifica a cada 10 segundos se já pode retomar. Pausar, Ocultar painel e alterar configurações cancelam o reinício. Aguarda vida válida e confirmação das ações pendentes.</small>
     <nav><button id="diagnostico">Conferir jogo</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
     <small>Ocultar o painel também pausa a caçada. Para abrir de novo, clique no ícone da extensão. Os avisos reconhecidos continuam sendo fechados mesmo com a caçada pausada.</small>
     <div id="confirmacaoExpedicao" role="dialog" aria-modal="true" aria-label="Expedição ativa" hidden>
@@ -343,6 +345,7 @@
     posicionarPainel(caixa.left, caixa.top);
   });
   let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
+  let timerReinicio = null, reinicioArmado = false;
   const linhas = [];
   function status(msg) {
     ui('status').textContent = `${timer ? 'Ativo' : 'Pausado'} • ${msg}`;
@@ -352,18 +355,53 @@
     ui('log').textContent = linhas.join('\n');
   }
   function lerConfig() {
-    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vida para atacar'), limite: percentual(ui('limite').value, 'Limite da restauradora'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de alívio'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked };
+    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vida para atacar'), limite: percentual(ui('limite').value, 'Limite da restauradora'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de alívio'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked };
     if (!c.criatura) throw Error('Informe o nome exato da criatura.');
     if (c.atacar < 30) throw Error('Escolha pelo menos 30% de vida para começar a caçar.');
     if (c.limiteAlivio < c.limite) throw Error('O limite da poção de alívio precisa ser igual ou maior que o da restauradora.');
     return c;
   }
-  function pausar(msg = 'Você pausou a caçada. Clique em Iniciar quando quiser continuar.') {
+  function pausar(msg = 'Você pausou a caçada. Clique em Iniciar quando quiser continuar.', automatica = false) {
+    const retomar = automatica && reinicioArmado && config?.reiniciarAutomaticamente;
+    clearTimeout(timerReinicio); timerReinicio = null;
+    if (!retomar) reinicioArmado = false;
     try { sessionStorage.removeItem('aurenRetomadaAtualizacaoV1'); } catch {}
     preparacao?.responderExpedicao?.(false);
     preparacao = null;
-    clearInterval(timer); timer = null; ui('iniciar').disabled = false; status(msg);
+    clearInterval(timer); timer = null; ui('iniciar').disabled = false;
+    if (retomar) agendarReinicio(msg);
+    else status(msg);
     // Preserva ação pendente: pausar/retomar não autoriza repetir um clique sem confirmação.
+  }
+  function agendarReinicio(msg) {
+    if (!reinicioArmado || removido || host.hidden || !config?.reiniciarAutomaticamente) return;
+    clearTimeout(timerReinicio);
+    status(`${msg} Reinício automático: nova verificação em 10 segundos.`);
+    timerReinicio = setTimeout(tentarReinicio, 10000);
+  }
+  function confirmarAcaoPendente(hp, r) {
+    if (!pendente) return true;
+    // Um resultado permite retomar o acompanhamento do ataque, sem autorizar outro ataque.
+    if (pendente.tipo === 'ataque') return !!r;
+    if (pendente.tipo === 'fechamento' && !r) { pendente = null; return true; }
+    if (['alivio', 'restauradora'].includes(pendente.tipo) && hp !== null && hp > pendente.hp) {
+      const esperado = pendente.tipo === 'alivio' ? Math.min(100, pendente.hp + 40) : 100;
+      if (hp >= esperado - 0.01) { pendente = null; return true; }
+    }
+    return false;
+  }
+  async function tentarReinicio() {
+    timerReinicio = null;
+    if (!reinicioArmado || timer || preparacao || removido || host.hidden) return;
+    try {
+      if (document.hidden && !config.continuarOculta) return agendarReinicio('Aguardando a aba do jogo ficar visível.');
+      const hp = lerVida(), r = resultado();
+      if (hp === null || hp <= 0) return agendarReinicio('Aguardando uma leitura válida de vida acima de zero.');
+      if (!confirmarAcaoPendente(hp, r)) return agendarReinicio('Aguardando o jogo confirmar a última ação, sem repetir cliques.');
+      if (estadoExpedicao().ativa) return agendarReinicio('Há uma expedição ativa. Aguardando ela terminar ou ser pausada no jogo.');
+      selecionando = null;
+      await iniciar(true);
+    } catch (e) { agendarReinicio(`Não consegui retomar: ${e.message}`); }
   }
   function diagnostico() {
     const c = lerConfig(), hp = lerVida(), criatura = localizarCriatura(c.criatura);
@@ -388,7 +426,7 @@
       const hp = lerVida(), r = resultado(), agora = Date.now();
       if (r && (!pendente || pendente.tipo === 'ataque')) {
         const btn = fecharResultado(r);
-        if (!btn) return pausar('A caçada terminou, mas não consegui encontrar o botão Continuar com segurança. Feche o resultado no jogo e tente de novo.');
+        if (!btn) return pausar('A caçada terminou, mas não consegui encontrar o botão Continuar com segurança. Feche o resultado no jogo e tente de novo.', true);
         if (clicar(btn)) {
           pendente = { tipo: 'fechamento', inicio: agora };
           selecionando = null;
@@ -397,49 +435,52 @@
         return;
       }
       if (pendente) {
-        if (pendente.tipo === 'fechamento' && !r) {
-          pendente = null; status('Resultado fechado! Conferindo a vida antes da próxima caçada.');
-        } else if (['alivio', 'restauradora'].includes(pendente.tipo) && hp !== null && hp > pendente.hp) {
-          // Aumento de vida pode ser regeneração; exige aumento compatível com a poção.
-          const esperado = pendente.tipo === 'alivio' ? Math.min(100, pendente.hp + 40) : 100;
-          if (hp >= esperado - 0.01) { pendente = null; status('A vida recuperou. Vou conferir se já dá para caçar.'); }
+        const tipo = pendente.tipo;
+        if (confirmarAcaoPendente(hp, r)) {
+          status(tipo === 'fechamento' ? 'Resultado fechado! Conferindo a vida antes da próxima caçada.' : 'A vida recuperou. Vou conferir se já dá para caçar.');
         }
-        if (pendente && agora - pendente.inicio > 45000) pausar('O jogo demorou a responder. Pausei a caçada para evitar repetir uma ação. Confira o jogo antes de continuar.');
+        if (pendente && agora - pendente.inicio > 45000) pausar('O jogo demorou a responder. Pausei a caçada para evitar repetir uma ação. Confira o jogo antes de continuar.', true);
         return;
       }
-      if (hp === null) return pausar('Não consegui ler a vida do herói. Abra a tela de Caçada e use Conferir jogo.');
+      // Uma renderização temporária não deve desligar o ciclo. Só decide com uma leitura atual válida.
+      if (hp === null) {
+        status('Não consegui ler a vida do herói. Aguardando a leitura voltar para retomar automaticamente, sem atacar nem usar poções.');
+        return;
+      }
       const acao = decidir(config, hp);
-      if (acao === 'pausar') return pausar('Seu herói está sem vida. Cuide dele no jogo antes de continuar.');
+      if (acao === 'pausar') return pausar('Seu herói está sem vida. Cuide dele no jogo antes de continuar.', true);
       if (acao === 'regenerar') { status(`Sua vida está em ${hp.toFixed(2)}%. Vou esperar chegar a ${config.atacar}% para caçar.`); return; }
       if (acao === 'atacar') {
         const criatura = localizarCriatura(config.criatura);
-        if (!criatura) return pausar('Não consegui identificar a criatura com segurança. Confira o nome e deixe a região dela aberta.');
+        if (!criatura) return pausar('Não consegui identificar a criatura com segurança. Confira o nome e deixe a região dela aberta.', true);
         if (!selecionada(criatura)) {
           if (selecionando && selecionando.nome === config.criatura) {
-            if (agora - selecionando.inicio > 8000) pausar('O jogo não confirmou a criatura escolhida. Selecione-a no jogo e use Conferir jogo.');
+            if (agora - selecionando.inicio > 8000) pausar('O jogo não confirmou a criatura escolhida. Selecione-a no jogo e use Conferir jogo.', true);
             return;
           }
           const btn = criatura.matches('button,[role="button"]') ? criatura : unico(todos('button,[role="button"]', criatura));
-          if (!clicar(btn)) return pausar('Não consegui selecionar essa criatura. Clique nela no jogo e tente de novo.');
+          if (!clicar(btn)) return pausar('Não consegui selecionar essa criatura. Clique nela no jogo e tente de novo.', true);
           selecionando = { nome: config.criatura, inicio: agora }; status('Escolhendo a criatura. Aguardando o jogo confirmar…'); return;
         }
         selecionando = null;
         const btn = botaoAtacar();
-        if (!clicar(btn)) return pausar('Não consegui usar o botão de caçar. Confira se a criatura está selecionada e se o jogo permite iniciar a caçada.');
+        if (!clicar(btn)) return pausar('Não consegui usar o botão de caçar. Confira se a criatura está selecionada e se o jogo permite iniciar a caçada.', true);
         pendente = { tipo: 'ataque', inicio: agora, hp }; status(`Caçando ${config.criatura}. Aguardando o resultado…`); return;
       }
       const btn = botaoPocao(acao);
       if (!btn) { status(`Não consegui encontrar a poção ${acao === 'alivio' ? 'de alívio' : 'restauradora'} com segurança. Vou esperar a vida recuperar. Você pode usar Conferir jogo.`); return; }
       if (!habilitado(btn)) { status(`A poção ${acao === 'alivio' ? 'de alívio' : 'restauradora'} não está disponível. Vou esperar a vida recuperar.`); return; }
       if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de alívio' : 'restauradora'}. Aguardando a vida recuperar…`); }
-    } catch (e) { pausar(`Erro: ${e.message}`); }
+    } catch (e) { pausar(`Erro: ${e.message}`, true); }
   }
-  async function iniciar() {
+  async function iniciar(automatico = false) {
     if (timer || preparacao || removido) return;
+    clearTimeout(timerReinicio); timerReinicio = null;
+    if (!automatico) reinicioArmado = false;
     const token = {};
     try {
-      if (pendente && Date.now() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo não confirmou a última ação. Confira o que aconteceu e recarregue a página antes de tentar de novo.');
       preparacao = token;
+      if (pendente && Date.now() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo não confirmou a última ação. Confira o que aconteceu e recarregue a página antes de tentar de novo.');
       ui('iniciar').disabled = true;
       status('Preparando a caçada.');
       if (!(await navegarCacada(() => preparacao === token && !removido))) return;
@@ -453,9 +494,10 @@
       if (!(await prepararModalidade(token))) return;
       if (preparacao !== token) return;
       preparacao = null;
+      reinicioArmado = config.reiniciarAutomaticamente;
       timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true; status('Caçada iniciada! Vou cuidar dos combates e da recuperação de vida conforme suas escolhas.');
     } catch (e) {
-      if (preparacao === token) pausar(e.message);
+      if (preparacao === token) pausar(e.message, automatico);
       else if (!timer && !preparacao) status(e.message);
     }
   }
@@ -475,9 +517,9 @@
   }
   const api = { iniciar, pausar, fechar, diagnostico, decidir, seletores, prepararAtualizacao };
   window.aurenCacada = api;
-  ui('iniciar').onclick = iniciar; ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
+  ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta'];
+  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }
