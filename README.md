@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.11, com fechamento automático de avisos desde o carregamento da página.
+Extensão Chrome de caçada v3.3.12, com opção para continuar a caçada quando a aba estiver oculta.
 
 ## Instalar
 
@@ -17,6 +17,7 @@ Extensão Chrome de caçada v3.3.11, com fechamento automático de avisos desde 
 - Escolha a vida mínima para atacar e o modo de recuperação.
 - Configure os limites da restauradora e da poção de alívio.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
+- Para usar na VPS, marque **Continuar quando a aba estiver oculta** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
 - Ao clicar em **Iniciar** no painel, o bot seleciona **Só o resultado** e valida as configurações. Se houver expedição ativa, pergunta se deseja pausá-la; somente com sua aceitação solicita a pausa, retorna para **Caçada**, reconfirma **Só o resultado** e inicia o ciclo.
 - Configure a criatura e os limites no painel. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém a caçada parada, antes de pausar uma expedição.
@@ -25,7 +26,13 @@ Extensão Chrome de caçada v3.3.11, com fechamento automático de avisos desde 
 - Para parar, use **Pausar** no painel. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão. Ele abre diretamente o painel no jogo, sem popup intermediário e sem iniciar a automação.
 
-As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Uma recusa da pausa cancela a tentativa de início atual. Ocultar a aba também pausa a caçada.
+As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Uma recusa da pausa cancela a tentativa de início atual. Por padrão, ocultar a aba também pausa a caçada.
+
+## VPS e aba oculta
+
+A opção **Continuar quando a aba estiver oculta** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém o ciclo quando o navegador informa que a aba ficou oculta, inclusive se isso acontecer ao minimizar a janela ou desconectar o RDP. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
+
+O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. O navegador ainda pode reduzir a frequência dos ciclos, congelar ou descartar a aba em segundo plano; esta opção apenas desativa a pausa por visibilidade e não impede essas limitações. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
 
 ## Mover o painel
 
