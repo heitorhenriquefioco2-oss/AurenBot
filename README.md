@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.13, com retomada automática após falhas temporárias na leitura da vida.
+Extensão Chrome de caçada v3.3.14, com reinício automático opcional após paradas por erro e recuperação da leitura da vida.
 
 ## Instalar
 
@@ -39,6 +39,14 @@ O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é difere
 Se o bot não conseguir ler a vida do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente a cada ciclo (intervalo nominal de 2,2 segundos). Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando a vida voltar a ser identificada, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
 
 Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusive durante essa espera. As ações já pendentes continuam exigindo confirmação e respeitando seu prazo original, para evitar cliques duplicados. Uma leitura válida de vida zero continua pausando a caçada. A extensão não recarrega a página automaticamente; se a interface não se recuperar, a mensagem de espera permanece no painel.
+
+## Reinício automático após paradas por erro
+
+Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
+
+Para retomar, aguarda uma leitura de vida acima de zero e a confirmação de ações pendentes. Um ataque sem resultado ou uma poção sem recuperação confirmada nunca é repetido apenas porque o prazo expirou. Se a confirmação chegar mais tarde, a recuperação continua sem descartar esse registro. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
+
+**Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
 ## Mover o painel
 
