@@ -279,7 +279,7 @@
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.11</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.12</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar da vida do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -290,6 +290,8 @@
     <label><input id="economizar" type="checkbox" checked> Esperar um pouco para economizar poções</label>
     <label>Esperar se faltar até (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
     <small>Exemplo: para caçar com 80%, esperar 5 significa aguardar a vida subir de 75% para 80%, sem gastar poção. Essa espera tem prioridade sobre o uso de poções. Se a poção não estiver disponível, o bot também espera.</small>
+    <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar quando a aba estiver oculta</label>
+    <small id="ajudaContinuarOculta">Útil em VPS ao desconectar o RDP. Mantenha o jogo e o Chrome abertos. O navegador pode reduzir a frequência dos ciclos em segundo plano.</small>
     <nav><button id="diagnostico">Conferir jogo</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
     <small>Ocultar o painel também pausa a caçada. Para abrir de novo, clique no ícone da extensão. Os avisos reconhecidos continuam sendo fechados mesmo com a caçada pausada.</small>
     <div id="confirmacaoExpedicao" role="dialog" aria-modal="true" aria-label="Expedição ativa" hidden>
@@ -350,7 +352,7 @@
     ui('log').textContent = linhas.join('\n');
   }
   function lerConfig() {
-    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vida para atacar'), limite: percentual(ui('limite').value, 'Limite da restauradora'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de alívio'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia') };
+    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vida para atacar'), limite: percentual(ui('limite').value, 'Limite da restauradora'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de alívio'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked };
     if (!c.criatura) throw Error('Informe o nome exato da criatura.');
     if (c.atacar < 30) throw Error('Escolha pelo menos 30% de vida para começar a caçar.');
     if (c.limiteAlivio < c.limite) throw Error('O limite da poção de alívio precisa ser igual ou maior que o da restauradora.');
@@ -475,7 +477,7 @@
   window.aurenCacada = api;
   ui('iniciar').onclick = iniciar; ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'economizar', 'margem'];
+  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }
@@ -510,7 +512,7 @@
   if (erroNavegacaoInicial) status(erroNavegacaoInicial);
   document.addEventListener('visibilitychange', function oculto() {
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
-    if (document.hidden && timer) pausar('Você saiu da aba do jogo, então pausei a caçada. Ao voltar, clique em Iniciar para continuar.');
+    if (document.hidden && timer && !config.continuarOculta) pausar('A aba do jogo ficou oculta, então pausei a caçada. Ao voltar, clique em Iniciar para continuar.');
   });
   console.info('Auren instalado. Caçada pausada até clicar em Iniciar. API: window.aurenCacada.');
   // Só a atualização acionada pelo bot permite retomar sem clicar em Iniciar.
@@ -522,7 +524,7 @@
     if (retomada?.versao === 1 && idade >= 0 && idade <= 120000 && retomada.config && !erroNavegacaoInicial) {
       for (const id of campos) {
         const valor = retomada.config[id];
-        if (id === 'economizar' && typeof valor === 'boolean') ui(id).checked = valor;
+        if (ui(id).type === 'checkbox' && typeof valor === 'boolean') ui(id).checked = valor;
         else if (typeof valor === 'string' || typeof valor === 'number') ui(id).value = String(valor);
       }
       const anterior = retomada.pendente;
