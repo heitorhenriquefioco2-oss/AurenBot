@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.12, com opção para continuar a caçada quando a aba estiver oculta.
+Extensão Chrome de caçada v3.3.13, com retomada automática após falhas temporárias na leitura da vida.
 
 ## Instalar
 
@@ -33,6 +33,12 @@ As configurações são salvas localmente pela extensão neste perfil do Chrome.
 A opção **Continuar quando a aba estiver oculta** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém o ciclo quando o navegador informa que a aba ficou oculta, inclusive se isso acontecer ao minimizar a janela ou desconectar o RDP. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
 
 O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. O navegador ainda pode reduzir a frequência dos ciclos, congelar ou descartar a aba em segundo plano; esta opção apenas desativa a pausa por visibilidade e não impede essas limitações. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
+
+## Falhas temporárias na leitura da vida
+
+Se o bot não conseguir ler a vida do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente a cada ciclo (intervalo nominal de 2,2 segundos). Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando a vida voltar a ser identificada, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
+
+Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusive durante essa espera. As ações já pendentes continuam exigindo confirmação e respeitando seu prazo original, para evitar cliques duplicados. Uma leitura válida de vida zero continua pausando a caçada. A extensão não recarrega a página automaticamente; se a interface não se recuperar, a mensagem de espera permanece no painel.
 
 ## Mover o painel
 
