@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.14, com reinício automático opcional após paradas por erro e recuperação da leitura da vida.
+Extensão Chrome de caçada v3.3.15, com fechamento automático do painel de Check-in diário.
 
 ## Instalar
 
@@ -69,6 +69,7 @@ Pausar, ocultar o painel ou alterar as configurações cancela uma preparação 
 O fechamento inicia em `document_start`, antes do painel, e faz uma primeira verificação imediatamente. Um observador detecta alterações na página, com uma verificação adicional a cada 700 ms e antes de cada ciclo da caçada. Ele continua ativo com a caçada pausada ou o painel oculto.
 
 - Resultados de atividades, incluindo vitória e derrota da Arena Livre: usa o botão `activity-result-continue` dentro de `activity-result-dialog`.
+- Check-in diário: reconhece o título e os textos do painel e aciona seu botão de fechar, inclusive quando a janela não tem marcação de diálogo ou o botão usa apenas um ícone X reconhecido. Não clica em Receber nem em recompensas. Funciona também com a caçada pausada ou o painel do bot oculto.
 - Avisos em diálogos, modais e notificações: reconhece um único botão de dispensar, como Fechar, Entendi, OK ou ×. Também reconhece Entendi em tutoriais inline.
 - O resultado da própria caçada permanece sob controle do ciclo original, para preservar a confirmação do ataque.
 - Aguarda botões habilitados e limita tentativas de fechamento. Enquanto um aviso reconhecido permanece aberto, o ciclo não clica por trás dele.

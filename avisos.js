@@ -25,13 +25,40 @@
     return candidatos;
   }
 
+  function avisosCheckin() {
+    const candidatos = [];
+    const tituloCheckin = /^check[-\s\u2010-\u2015]*in diario$/;
+    const rotuloFechar = /^(?:fechar|close)(?: (?:o )?(?:painel|check[-\s\u2010-\u2015]*in(?: diario)?))?$|^[×✕✖x]$/;
+    // O check-in pode ser um painel sem role de diálogo. Exige o título e o texto próprio dele.
+    const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"],div,span')]
+      .filter(el => visivel(el) && tituloCheckin.test(normal(el.textContent)));
+    for (const titulo of titulos) {
+      let painel = titulo.parentElement;
+      for (let nivel = 0; painel && nivel < 8 && painel !== document.body && painel !== document.documentElement; nivel++, painel = painel.parentElement) {
+        const t = normal(painel.textContent);
+        if (!/registrar o check[-\s\u2010-\u2015]*in de hoje|recompensa de hoje|dias recebidos/.test(t)) continue;
+        const fechar = [...painel.querySelectorAll('button, [role="button"]')].filter(botao => {
+          if (!visivel(botao)) return false;
+          const rotulos = [botao.getAttribute('aria-label'), botao.getAttribute('title'), botao.textContent].map(normal).filter(Boolean);
+          if (rotulos.some(rotulo => rotuloFechar.test(rotulo))) return true;
+          // Um ícone X sem texto também é aceito, somente dentro do painel identificado.
+          return rotulos.length === 0 && !!botao.querySelector('svg.lucide-x, [data-lucide="x"], svg[data-icon="x"]');
+        });
+        if (fechar.length === 1 && !candidatos.some(c => c.botao === fechar[0])) candidatos.push({ painel, botao: fechar[0] });
+        // Ao chegar aos controles do painel, não procura um X em contêineres externos.
+        if (painel.querySelector('button, [role="button"]')) break;
+      }
+    }
+    return candidatos;
+  }
+
   function verificar() {
     if (!ativo || verificando) return false;
     verificando = true;
     try {
       for (const [painel] of tentativas) if (!visivel(painel)) tentativas.delete(painel);
       const paineis = [...document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"], .modal, .toast, [role="alert"]')].filter(visivel);
-      const candidatos = avisosAtualizacao();
+      const candidatos = [...avisosAtualizacao(), ...avisosCheckin()];
       for (const painel of paineis) {
         const t = normal(painel.textContent);
         // A confirmação de um ataque pertence exclusivamente ao ciclo da caçada.
@@ -55,7 +82,8 @@
           candidatos.push({ painel: botao, botao });
         }
       }
-      for (const { painel, botao, atualizacao } of candidatos) {
+      const unicos = candidatos.filter((c, i) => candidatos.findIndex(outro => outro.botao === c.botao) === i);
+      for (const { painel, botao, atualizacao } of unicos) {
         const anterior = tentativas.get(painel) || { n: 0, quando: 0 };
         if (atualizacao && anterior.n >= 1) continue;
         if (!habilitado(botao) || anterior.n >= 3 || Date.now() - anterior.quando < 1500) continue;
