@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.15, com fechamento automático do painel de Check-in diário.
+Extensão Chrome de caçada v3.3.16, com suporte ao Vigor de caçada e às poções de vigor comum e maior.
 
 ## Instalar
 
@@ -14,19 +14,23 @@ Extensão Chrome de caçada v3.3.15, com fechamento automático do painel de Che
 ## Usar
 
 - Informe o nome exato da criatura disponível na região aberta.
-- Escolha a vida mínima para atacar e o modo de recuperação.
-- Configure os limites da restauradora e da poção de alívio.
+- Escolha o vigor mínimo para atacar e o modo de recuperação.
+- Configure os limites da poção de vigor maior e da poção de vigor.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
 - Para usar na VPS, marque **Continuar quando a aba estiver oculta** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
 - Ao clicar em **Iniciar** no painel, o bot seleciona **Só o resultado** e valida as configurações. Se houver expedição ativa, pergunta se deseja pausá-la; somente com sua aceitação solicita a pausa, retorna para **Caçada**, reconfirma **Só o resultado** e inicia o ciclo.
 - Configure a criatura e os limites no painel. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém a caçada parada, antes de pausar uma expedição.
 - Pausar, ocultar o painel ou alterar qualquer configuração cancela a preparação. Recusar a pausa mantém a expedição e não inicia a caçada.
-- O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia a vida e repete o ciclo.
+- O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia o vigor e repete o ciclo.
 - Para parar, use **Pausar** no painel. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão. Ele abre diretamente o painel no jogo, sem popup intermediário e sem iniciar a automação.
 
 As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Uma recusa da pausa cancela a tentativa de início atual. Por padrão, ocultar a aba também pausa a caçada.
+
+## Vigor e poções
+
+A leitura prioriza a barra de Vigor da caçada, inclusive quando o cabeçalho mostra uma expedição. A **Poção de vigor** recupera 40 pontos de vigor (40% da barra), e a **Poção de vigor maior** recupera 100 pontos (barra completa). Vigor em zero também permite recuperação, por poções ou regeneração, conforme suas escolhas. Os limites e preferências salvos são preservados: o limite da antiga poção de alívio passa a controlar a poção comum, e o da antiga restauradora passa a controlar a maior.
 
 ## VPS e aba oculta
 
@@ -34,17 +38,17 @@ A opção **Continuar quando a aba estiver oculta** vem desmarcada e fica salva 
 
 O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. O navegador ainda pode reduzir a frequência dos ciclos, congelar ou descartar a aba em segundo plano; esta opção apenas desativa a pausa por visibilidade e não impede essas limitações. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
 
-## Falhas temporárias na leitura da vida
+## Falhas temporárias na leitura do vigor
 
-Se o bot não conseguir ler a vida do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente a cada ciclo (intervalo nominal de 2,2 segundos). Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando a vida voltar a ser identificada, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
+Se o bot não conseguir ler o vigor do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente a cada ciclo (intervalo nominal de 2,2 segundos). Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando o vigor voltar a ser identificado, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
 
-Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusive durante essa espera. As ações já pendentes continuam exigindo confirmação e respeitando seu prazo original, para evitar cliques duplicados. Uma leitura válida de vida zero continua pausando a caçada. A extensão não recarrega a página automaticamente; se a interface não se recuperar, a mensagem de espera permanece no painel.
+Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusive durante essa espera. As ações já pendentes continuam exigindo confirmação e respeitando seu prazo original, para evitar cliques duplicados. Uma leitura válida de vigor zero permite recuperação; vigor desconhecido não autoriza atacar nem usar poções. A extensão não recarrega a página automaticamente; se a interface não se recuperar, a mensagem de espera permanece no painel.
 
 ## Reinício automático após paradas por erro
 
 Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
-Para retomar, aguarda uma leitura de vida acima de zero e a confirmação de ações pendentes. Um ataque sem resultado ou uma poção sem recuperação confirmada nunca é repetido apenas porque o prazo expirou. Se a confirmação chegar mais tarde, a recuperação continua sem descartar esse registro. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
+Para retomar, aguarda uma leitura válida de vigor entre zero e 100% e a confirmação de ações pendentes. Um ataque sem resultado ou uma poção sem recuperação confirmada nunca é repetido apenas porque o prazo expirou. Se a confirmação chegar mais tarde, a recuperação continua sem descartar esse registro. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
@@ -80,12 +84,12 @@ Pausar e Ocultar painel interrompem apenas a caçada. Para interromper também o
 
 ## Exemplo
 
-Ataque em 80%, restauradora até 30%, alívio até 70%, economia de 5 pontos:
+Ataque em 80%, poção de vigor maior até 30%, poção de vigor até 70%, economia de 5 pontos:
 
-- Vida a partir de 80%: atacar.
-- Vida até 30%: restauradora.
-- Vida acima de 30% e até 70%: alívio.
-- Vida acima de 70% e abaixo de 80%: aguardar regeneração.
+- Vigor a partir de 80%: atacar.
+- Vigor até 30%: poção de vigor maior.
+- Vigor acima de 30% e até 70%: poção de vigor.
+- Vigor acima de 70% e abaixo de 80%: aguardar regeneração.
 - A margem de economia e o modo somente regeneração têm prioridade sobre o uso de poções.
 
 ## Observações
