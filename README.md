@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.16, com suporte ao Vigor de caçada e às poções de vigor comum e maior.
+Extensão Chrome de caçada v3.3.17, com espera pela verificação do Cloudflare e confirmação do selo já validado.
 
 ## Instalar
 
@@ -51,6 +51,14 @@ Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Ini
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100% e a confirmação de ações pendentes. Um ataque sem resultado ou uma poção sem recuperação confirmada nunca é repetido apenas porque o prazo expirou. Se a confirmação chegar mais tarde, a recuperação continua sem descartar esse registro. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+
+## Verificação do Cloudflare
+
+Quando a janela **A guarda pede um sinal** aparece, o bot aguarda e não aciona ataques, poções, seleção de criaturas ou avisos atrás dela. O tempo em que a janela permanece aberta não consome os prazos de confirmação de ações e de preparação da caçada. Ao desaparecer, o acompanhamento continua com as ações pendentes preservadas. Pausar e Ocultar painel continuam interrompendo a caçada.
+
+A extensão não interage com o CAPTCHA nem resolve desafios. Se o Cloudflare exigir interação, conclua a validação na janela do jogo. Quando o widget já tiver emitido uma resposta no campo padrão e o botão estiver habilitado, a extensão clica em **Apresentar o selo** uma vez por resposta e aguarda a confirmação do jogo. Se o campo não estiver disponível, apresente o selo manualmente. Essa confirmação funciona mesmo com a caçada pausada, assim como o fechamento dos demais avisos.
+
+Uma ação ainda sem confirmação depois da verificação continua sujeita ao prazo original de 45 segundos de tempo ativo. A extensão não apaga o registro nem repete ataques ou poções sem confirmação. **Conferir jogo** também registra no diagnóstico do console se a verificação está aberta e há quantos segundos ativos a ação está pendente, sem registrar a resposta do Cloudflare.
 
 ## Mover o painel
 

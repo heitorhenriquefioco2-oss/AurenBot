@@ -15,6 +15,12 @@
   const todos = (sel, scope = document) => [...scope.querySelectorAll(sel)].filter(visivel);
   const unico = xs => xs.length === 1 ? xs[0] : null;
   const numero = v => Number(String(v).replace(',', '.'));
+  const agoraAtivo = () => Date.now() - (window.aurenAvisos?.tempoVerificacaoHumana || 0);
+  function avisosBloqueando(reportar = status) {
+    const bloqueado = window.aurenAvisos?.verificar();
+    if (window.aurenAvisos?.verificacaoHumana) reportar('Verificação do Cloudflare aberta. Conclua a validação se necessário; aguardando o jogo liberar a caçada.');
+    return !!bloqueado || !!window.aurenAvisos?.verificacaoHumana;
+  }
   function percentual(valor, campo) {
     const texto = String(valor ?? '').trim().replace(/\s*%\s*$/, '').trim();
     if (!/^\d+(?:[.,]\d+)?$/.test(texto)) {
@@ -120,12 +126,12 @@
     return unico(laterais.length ? laterais : controles);
   }
   async function navegarCacada(valido, reportar = status, prazo = 8000) {
-    const inicio = Date.now();
+    const inicio = agoraAtivo();
     let clicado = false;
     while (valido()) {
       if (telaCacada()) return true;
-      if (Date.now() - inicio > prazo) throw Error('Não consegui abrir a Caçada. Clique em Caçada no menu esquerdo e tente de novo.');
-      if (!window.aurenAvisos?.verificar() && !clicado) {
+      if (agoraAtivo() - inicio > prazo) throw Error('Não consegui abrir a Caçada. Clique em Caçada no menu esquerdo e tente de novo.');
+      if (!avisosBloqueando(reportar) && !clicado) {
         const botao = menuCacada();
         if (botao && clicar(botao)) {
           clicado = true;
@@ -166,11 +172,11 @@
       return false;
     }
     if (preparacao !== token) return false;
-    const inicio = Date.now();
+    const inicio = agoraAtivo();
     let clicouOrigem = false, clicouNaExpedicao = false;
     while (preparacao === token && !removido) {
-      if (Date.now() - inicio > 8000) throw Error('O jogo ainda não confirmou a pausa da expedição. Confira se ela foi pausada antes de tentar de novo.');
-      if (!window.aurenAvisos?.verificar()) {
+      if (agoraAtivo() - inicio > 8000) throw Error('O jogo ainda não confirmou a pausa da expedição. Confira se ela foi pausada antes de tentar de novo.');
+      if (!avisosBloqueando()) {
         const expedicao = estadoExpedicao();
         if (!expedicao.ativa && (telaCacada() || (telaExpedicao() && (expedicao.pausada || clicouNaExpedicao)))) {
           if (!(await navegarCacada(() => preparacao === token && !removido))) return false;
@@ -204,11 +210,11 @@
       .some(el => normal(el.textContent) === 'cacar e ver resultado');
   }
   async function prepararModalidade(token) {
-    const inicio = Date.now();
+    const inicio = agoraAtivo();
     let clicado = false;
     while (preparacao === token && !removido) {
-      if (Date.now() - inicio > 8000) throw Error('Não consegui selecionar Só o resultado. Confira essa opção na tela de Caçada e tente de novo.');
-      if (!window.aurenAvisos?.verificar()) {
+      if (agoraAtivo() - inicio > 8000) throw Error('Não consegui selecionar Só o resultado. Confira essa opção na tela de Caçada e tente de novo.');
+      if (!avisosBloqueando()) {
         const botao = botaoSoResultado();
         if (botao && modoResultadoConfirmado(botao)) return true;
         if (botao && !clicado && clicar(botao)) {
@@ -290,7 +296,7 @@
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.16</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.17</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar do vigor do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -405,6 +411,7 @@
     timerReinicio = null;
     if (!reinicioArmado || timer || preparacao || removido || host.hidden) return;
     try {
+      if (avisosBloqueando()) return agendarReinicio('Aguardando a verificação ou o aviso do jogo ser concluído.');
       if (document.hidden && !config.continuarOculta) return agendarReinicio('Aguardando a aba do jogo ficar visível.');
       const hp = lerVigor(), r = resultado();
       if (hp === null) return agendarReinicio('Aguardando uma leitura válida de vigor.');
@@ -416,7 +423,7 @@
   }
   function diagnostico() {
     const c = lerConfig(), hp = lerVigor(), criatura = localizarCriatura(c.criatura);
-    const d = { vigor: hp, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), pendente: pendente && pendente.tipo, configuracao: c };
+    const d = { vigor: hp, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana, pendente: pendente && pendente.tipo, segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000) : null, configuracao: c };
     console.info('Diagnóstico Auren (nenhum clique):', d);
     const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'encontrado, mas ainda indisponível') : 'não encontrado';
     status([
@@ -433,8 +440,8 @@
   function ciclo() {
     if (!timer || removido) return;
     try {
-      if (window.aurenAvisos?.verificar()) return;
-      const hp = lerVigor(), r = resultado(), agora = Date.now();
+      if (avisosBloqueando()) return;
+      const hp = lerVigor(), r = resultado(), agora = agoraAtivo();
       if (r && (!pendente || pendente.tipo === 'ataque')) {
         const btn = fecharResultado(r);
         if (!btn) return pausar('A caçada terminou, mas não consegui encontrar o botão Continuar com segurança. Feche o resultado no jogo e tente de novo.', true);
@@ -491,7 +498,7 @@
     const token = {};
     try {
       preparacao = token;
-      if (pendente && Date.now() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo não confirmou a última ação. Confira o que aconteceu e recarregue a página antes de tentar de novo.');
+      if (pendente && agoraAtivo() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo não confirmou a última ação. Confira o que aconteceu e recarregue a página antes de tentar de novo.');
       ui('iniciar').disabled = true;
       status('Preparando a caçada.');
       if (!(await navegarCacada(() => preparacao === token && !removido))) return;
@@ -518,7 +525,7 @@
     try {
       sessionStorage.setItem('aurenRetomadaAtualizacaoV1', JSON.stringify({
         versao: 1, criadoEm: Date.now(), config,
-        pendente: pendente ? { ...pendente } : null
+        pendente: pendente ? { ...pendente, inicio: Date.now() - Math.max(0, agoraAtivo() - pendente.inicio) } : null
       }));
       clearInterval(timer); timer = null;
       status('O jogo vai atualizar. Vou retomar sua caçada assim que a página carregar.');
@@ -581,7 +588,7 @@
         else if (typeof valor === 'string' || typeof valor === 'number') ui(id).value = String(valor);
       }
       const anterior = retomada.pendente;
-      if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = anterior;
+      if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = { ...anterior, inicio: agoraAtivo() - Math.max(0, Date.now() - anterior.inicio) };
       status('Jogo atualizado. Retomando sua caçada com as mesmas escolhas…');
       iniciar();
     }

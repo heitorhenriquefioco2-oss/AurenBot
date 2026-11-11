@@ -7,6 +7,38 @@
   const habilitado = el => visivel(el) && !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.getAttribute('aria-busy') !== 'true';
   const tentativas = new Map();
   let ativo = true, agendado = false, verificando = false, total = 0;
+  let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
+  const selosEnviados = new WeakMap();
+
+  function localizarVerificacaoHumana() {
+    const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"]')]
+      .filter(el => visivel(el) && normal(el.textContent) === 'a guarda pede um sinal');
+    if (!titulos.length) return null;
+    const paineis = [...new Set(titulos.map(titulo => {
+      const dialogo = titulo.closest('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]');
+      if (dialogo) return dialogo;
+      let painel = titulo.parentElement;
+      for (let nivel = 0; painel && nivel < 6 && painel !== document.body && painel !== document.documentElement; nivel++, painel = painel.parentElement) {
+        if (painel.querySelector('iframe[src*="challenges.cloudflare.com"], .cf-turnstile, input[name="cf-turnstile-response"], button')) return painel;
+      }
+      return titulo.parentElement;
+    }))];
+    if (paineis.length !== 1) return { painel: null, botao: null, resposta: '' };
+    const painel = paineis[0];
+    const botoes = [...painel.querySelectorAll('button, [role="button"]')]
+      .filter(botao => visivel(botao) && /^apresentar (?:o )?selo$/.test(normal(botao.getAttribute('aria-label') || botao.textContent)));
+    const respostas = [...painel.querySelectorAll('input[name="cf-turnstile-response"]')]
+      .map(input => input.value.trim()).filter(Boolean);
+    return { painel, botao: botoes.length === 1 ? botoes[0] : null, resposta: respostas.length === 1 ? respostas[0] : '' };
+  }
+  function registrarVerificacao(presente) {
+    if (presente && inicioVerificacao === null) inicioVerificacao = Date.now();
+    if (!presente && inicioVerificacao !== null) {
+      tempoVerificacao += Math.max(0, Date.now() - inicioVerificacao);
+      inicioVerificacao = null;
+    }
+    verificacaoHumana = presente;
+  }
 
   function avisosAtualizacao() {
     const candidatos = [];
@@ -56,6 +88,17 @@
     if (!ativo || verificando) return false;
     verificando = true;
     try {
+      const selo = localizarVerificacaoHumana();
+      registrarVerificacao(!!selo);
+      if (selo) {
+        // Apenas confirma a resposta já emitida pelo widget. Não interage com o CAPTCHA.
+        if (selo.botao && selo.resposta && habilitado(selo.botao) && selosEnviados.get(selo.painel) !== selo.resposta) {
+          selosEnviados.set(selo.painel, selo.resposta);
+          selo.botao.click();
+          console.info('[Auren avisos] Selo já validado apresentado. Aguardando confirmação do jogo.');
+        }
+        return true; // Nenhum aviso ou ação por trás da verificação pode ser acionado.
+      }
       for (const [painel] of tentativas) if (!visivel(painel)) tentativas.delete(painel);
       const paineis = [...document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"], .modal, .toast, [role="alert"]')].filter(visivel);
       const candidatos = [...avisosAtualizacao(), ...avisosCheckin()];
@@ -118,7 +161,9 @@
   const timer = setInterval(verificar, 700);
   window.aurenAvisos = {
     verificar,
-    parar() { ativo = false; observer.disconnect(); clearInterval(timer); tentativas.clear(); },
+    parar() { ativo = false; observer.disconnect(); clearInterval(timer); tentativas.clear(); registrarVerificacao(false); },
+    get verificacaoHumana() { return verificacaoHumana; },
+    get tempoVerificacaoHumana() { return tempoVerificacao + (inicioVerificacao === null ? 0 : Math.max(0, Date.now() - inicioVerificacao)); },
     get fechamentos() { return total; }
   };
   verificar();
