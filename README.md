@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.18, com recuperação de ataques sem resultado quando o jogo libera uma nova caçada.
+Extensão Chrome de caçada v3.3.19, com abas de Caçada e Expedição e renovação opcional de jornadas em paralelo.
 
 ## Instalar
 
@@ -19,14 +19,14 @@ Extensão Chrome de caçada v3.3.18, com recuperação de ataques sem resultado 
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
 - Para usar na VPS, marque **Continuar quando a aba estiver oculta** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
-- Ao clicar em **Iniciar** no painel, o bot seleciona **Só o resultado** e valida as configurações. Se houver expedição ativa, pergunta se deseja pausá-la; somente com sua aceitação solicita a pausa, retorna para **Caçada**, reconfirma **Só o resultado** e inicia o ciclo.
-- Configure a criatura e os limites no painel. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém a caçada parada, antes de pausar uma expedição.
-- Pausar, ocultar o painel ou alterar qualquer configuração cancela a preparação. Recusar a pausa mantém a expedição e não inicia a caçada.
+- Ao clicar em **Iniciar** no painel, o bot seleciona **Só o resultado** e valida as configurações. Uma expedição ativa pode continuar em paralelo. Se a manutenção de expedições estiver ativada, confere ou inicia a jornada e retorna à **Caçada**, reconfirmando **Só o resultado** antes de continuar.
+- Configure a criatura e os limites na aba **Caçada**. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém as duas automações paradas.
+- Pausar, ocultar o painel ou alterar qualquer configuração cancela a preparação e a manutenção automática de expedições. Uma jornada que já partiu continua no jogo.
 - O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia o vigor e repete o ciclo.
 - Para parar, use **Pausar** no painel. **Ocultar painel** também pausa a automação.
 - Para reabrir o painel oculto, clique no ícone da extensão. Ele abre diretamente o painel no jogo, sem popup intermediário e sem iniciar a automação.
 
-As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Uma recusa da pausa cancela a tentativa de início atual. Por padrão, ocultar a aba também pausa a caçada.
+As configurações são salvas localmente pela extensão neste perfil do Chrome. A cada carregamento, o bot abre Caçada e aguarda Iniciar, mesmo com configurações salvas. Por padrão, ocultar a aba também pausa a caçada.
 
 ## Vigor e poções
 
@@ -48,7 +48,7 @@ Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusiv
 
 Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
-Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado, nenhuma expedição ativa e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
+Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
@@ -68,13 +68,19 @@ Arraste o título do painel com o mouse ou o dedo para posicioná-lo onde prefer
 
 O item do menu é localizado prioritariamente pelo título exato `title="Caçada (Alt + C)"`, inclusive quando o atributo está em um ícone ou elemento interno do controle. A navegação inicia em `document_start`, antes de criar o painel do bot. A extensão tenta abrir Caçada uma única vez pelo menu do jogo, aguardando o menu e a tela por até 15 segundos. Só depois exibe o painel, inclusive se for necessário informar uma falha de navegação. Se já estiver nela, não clica. Essa navegação não se repete durante o ciclo ou ao trocar manualmente de aba. Ao clicar em Iniciar, o bot também garante que está na tela correta antes de preparar a caçada. Após a exibição do painel, Pausar ou Ocultar painel cancela uma navegação de preparação em andamento.
 
-## Expedição ativa ao iniciar
+## Aba Expedição
 
-Após confirmar **Só o resultado** e validar as configurações, se o bot encontrar **Pausar expedição** ou o aviso **Herói em expedição**, ele pergunta no painel se deseja pausar a expedição. **Não, manter a expedição** mantém a expedição e a caçada não começa.
+Caçadas e expedições podem acontecer juntas. O bot não solicita nem aciona Pausar expedição para caçar.
 
-Com **Sim, pausar e começar a caçar**, o bot aciona o botão na Caçada. Se esse botão apenas abrir Expedição, ele aciona Pausar expedição nessa tela uma única vez e aguarda a confirmação da pausa por até 8 segundos. Depois volta para Caçada pelo menu esquerdo, aguarda a tela carregar, verifica que a expedição não continua ativa e confere **Só o resultado** antes de iniciar o ciclo. Sem confirmação da pausa, a caçada permanece parada. A expedição não é retomada automaticamente.
+Na aba **Expedição**, marque **Manter sempre em expedição** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
 
-Pausar, ocultar o painel ou alterar as configurações cancela uma preparação em andamento, inclusive enquanto a pergunta estiver aberta. O fechamento automático de avisos não responde essa pergunta, pois ela fica dentro do painel da extensão.
+Se já houver uma jornada ativa, ela continua com sua duração original. Quando terminar, a próxima usa a duração configurada. Se houver uma jornada pausada, tenta retomá-la, preservando sua duração. Sem jornada ativa ou pausada, abre Expedição, confirma a duração e clica uma única vez em Explorar. Aguarda o jogo confirmar a partida, retorna para Caçada e reconfirma Só o resultado.
+
+Enquanto a caçada está ativa, verifica a necessidade de uma nova jornada a cada 30 segundos, entre as ações da caçada. Não navega com um ataque, poção ou resultado ainda aguardando confirmação. Durante a navegação da expedição, o ciclo não clica na caçada. A alternância entre as abas do painel não pausa o bot; mudar as configurações pausa para aguardar um novo Iniciar.
+
+Se não conseguir preparar uma jornada, informa a falha na aba Expedição e tenta voltar à Caçada. Uma partida ou retomada enviada mas ainda sem confirmação não é repetida automaticamente. O registro é preservado também na retomada após atualização do jogo. Confira a jornada no jogo se essa espera continuar. Falhas para retornar à Caçada pausam a automação para não atuar na tela errada.
+
+**Pausar** e **Ocultar painel** interrompem as duas automações, incluindo navegações em andamento. Não cancelam nem abandonam uma expedição que já foi iniciada. A verificação do Cloudflare continua exigindo interação manual e suspende os prazos de preparação enquanto estiver aberta.
 
 ## Fechamento automático de avisos
 
