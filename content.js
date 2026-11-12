@@ -343,7 +343,7 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.20</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.21</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Configure sua caçada e, se quiser, mantenha uma expedição em paralelo. Quando estiver pronto, clique em Iniciar.</p>
     <nav role="tablist" aria-label="Configurações do bot"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
@@ -352,6 +352,7 @@
     <label>Como recuperar o vigor?<select id="modo"><option value="pocao">Usar poções quando precisar</option><option value="natural">Esperar o vigor recuperar sozinho</option></select></label>
     <div class="grid"><label>Caçar com pelo menos (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label><label>Usar poção de vigor maior com até (%)<input id="limite" type="text" inputmode="decimal" value="30"></label></div>
     <label>Usar poção de vigor com até (%)<input id="limiteAlivio" type="text" inputmode="decimal" value="70"></label>
+    <label><input id="substituirMaior" type="checkbox"> Usar poção comum quando a poção de vigor maior não estiver disponível</label>
     <small>No modo com poções, usa a poção de vigor maior com pouco vigor. Acima do limite dela, usa a poção de vigor até o limite escolhido. Depois disso, espera o vigor recuperar. Ao atingir o vigor mínimo para caçar, volta ao combate.</small>
     <label><input id="economizar" type="checkbox" checked> Esperar um pouco para economizar poções</label>
     <label>Esperar se faltar até (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
@@ -460,7 +461,7 @@
     ui('log').textContent = linhas.join('\n');
   }
   function lerConfig() {
-    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vigor para atacar'), limite: percentual(ui('limite').value, 'Limite da poção de vigor maior'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de vigor'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked, manterExpedicao: ui('manterExpedicao').checked, duracaoExpedicao: Number(ui('duracaoExpedicao').value) };
+    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vigor para atacar'), limite: percentual(ui('limite').value, 'Limite da poção de vigor maior'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de vigor'), substituirMaior: ui('substituirMaior').checked, economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked, manterExpedicao: ui('manterExpedicao').checked, duracaoExpedicao: Number(ui('duracaoExpedicao').value) };
     if (![15, 60, 240].includes(c.duracaoExpedicao)) throw Error('Escolha uma duração válida para a expedição.');
     if (!c.criatura) throw Error('Informe o nome exato da criatura.');
     if (c.atacar < 30) throw Error('Escolha pelo menos 30% de vigor para começar a caçar.');
@@ -605,7 +606,7 @@
           return;
         }
       }
-      const acao = decidir(config, hp);
+      let acao = decidir(config, hp);
       if (acao === 'pausar') return pausar('Não consegui validar o vigor do herói. Confira o jogo antes de continuar.', true);
       if (acao === 'regenerar') { status(`Seu vigor está em ${hp.toFixed(2)}%. Vou esperar chegar a ${config.atacar}% para caçar.`); return; }
       if (acao === 'atacar') {
@@ -625,10 +626,20 @@
         if (!clicar(btn)) return pausar('Não consegui usar o botão de caçar. Confira se a criatura está selecionada e se o jogo permite iniciar a caçada.', true);
         pendente = { tipo: 'ataque', inicio: agora, hp }; status(`Caçando ${config.criatura}. Aguardando o resultado…`); return;
       }
-      const btn = botaoPocao(acao);
+      let btn = botaoPocao(acao);
+      const substituir = acao === 'restauradora' && config.substituirMaior &&
+        (!btn || (!habilitado(btn) && btn.getAttribute('aria-busy') !== 'true'));
+      if (substituir) {
+        const comum = botaoPocao('alivio');
+        if (!habilitado(comum)) {
+          status('A poção de vigor maior não está disponível e não encontrei uma poção comum habilitada com segurança. Vou esperar o vigor recuperar.');
+          return;
+        }
+        acao = 'alivio'; btn = comum;
+      }
       if (!btn) { status(`Não consegui encontrar a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} com segurança. Vou esperar o vigor recuperar. Você pode usar Conferir jogo.`); return; }
       if (!habilitado(btn)) { status(`A poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não está disponível. Vou esperar o vigor recuperar.`); return; }
-      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}. Aguardando o vigor recuperar…`); }
+      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}${substituir ? ' no lugar da maior indisponível' : ''}. Aguardando o vigor recuperar…`); }
     } catch (e) { pausar(`Erro: ${e.message}`, true); }
   }
   async function iniciar(automatico = false) {
@@ -679,7 +690,7 @@
   window.aurenCacada = api;
   ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao'];
+  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'substituirMaior', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }

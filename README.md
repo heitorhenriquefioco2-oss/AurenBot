@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.20, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.21, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows quando aparecer uma verificação.
 
 ## Instalar
 
@@ -31,6 +31,10 @@ As configurações são salvas localmente pela extensão neste perfil do Chrome.
 ## Vigor e poções
 
 A leitura prioriza a barra de Vigor da caçada, inclusive quando o cabeçalho mostra uma expedição. A **Poção de vigor** recupera 40 pontos de vigor (40% da barra), e a **Poção de vigor maior** recupera 100 pontos (barra completa). Vigor em zero também permite recuperação, por poções ou regeneração, conforme suas escolhas. Os limites e preferências salvos são preservados: o limite da antiga poção de alívio passa a controlar a poção comum, e o da antiga restauradora passa a controlar a maior.
+
+Na aba **Caçada**, marque **Usar poção comum quando a poção de vigor maior não estiver disponível** para permitir a substituição. Vem desmarcada e fica salva neste perfil. Alterar a opção pausa a automação; clique em **Iniciar** para aplicar.
+
+Quando a decisão for usar a maior, mas seu botão estiver ausente ou indisponível, tenta usar uma única poção comum identificada e habilitada. Se a maior estiver habilitada, ela continua sendo a prioridade. Um botão marcado como ocupado não autoriza substituição. Se a comum também estiver indisponível ou ambígua, espera regenerar. O modo de regeneração e a economia de poções mantêm prioridade. Cada uso da comum aguarda a confirmação de recuperação de 40 pontos antes de reavaliar o vigor; não gasta várias poções de uma vez nem substitui a comum pela maior.
 
 ## VPS e aba oculta
 
