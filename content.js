@@ -18,7 +18,7 @@
   const agoraAtivo = () => Date.now() - (window.aurenAvisos?.tempoVerificacaoHumana || 0);
   function avisosBloqueando(reportar = status) {
     const bloqueado = window.aurenAvisos?.verificar();
-    if (window.aurenAvisos?.verificacaoHumana) reportar('Verificação do Cloudflare aberta. Conclua a validação se necessário; aguardando o jogo liberar a caçada.');
+    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.seloPronto ? 'Cloudflare validado. Clique manualmente em Apresentar o selo para continuar.' : 'Verificação do Cloudflare aberta. Conclua a validação e apresente o selo manualmente para continuar.');
     return !!bloqueado || !!window.aurenAvisos?.verificacaoHumana;
   }
   function percentual(valor, campo) {
@@ -296,7 +296,7 @@
   root.innerHTML = `<style>
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.17</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.18</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha a criatura e como cuidar do vigor do seu herói. Quando estiver pronto, clique em Iniciar. Se houver uma expedição em andamento, vamos pedir sua permissão para pausá-la.</p>
     <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
@@ -363,6 +363,19 @@
   });
   let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
   let timerReinicio = null, reinicioArmado = false;
+  let ataquePronto = null, motivoRecuperacao = '';
+  const observarProntidao = new MutationObserver(registros => {
+    if (!ataquePronto) return;
+    const { botao, criatura, modo } = ataquePronto;
+    if (!botao.isConnected || !criatura.isConnected || !modo.isConnected || window.aurenAvisos?.verificacaoHumana || estadoExpedicao().ativa ||
+        todos('dialog[open], [role="dialog"], [aria-modal="true"]').length ||
+        registros.some(r => r.type === 'attributes' &&
+          [botao, criatura, modo].some(el => r.target === el || r.target.contains(el)))) ataquePronto = null;
+  });
+  observarProntidao.observe(document.documentElement, {
+    childList: true, subtree: true, attributes: true,
+    attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-pressed', 'aria-selected', 'data-selected', 'class', 'hidden', 'style']
+  });
   const linhas = [];
   function status(msg) {
     ui('status').textContent = `${timer ? 'Ativo' : 'Pausado'} • ${msg}`;
@@ -379,6 +392,7 @@
     return c;
   }
   function pausar(msg = 'Você pausou a caçada. Clique em Iniciar quando quiser continuar.', automatica = false) {
+    ataquePronto = null;
     const retomar = automatica && reinicioArmado && config?.reiniciarAutomaticamente;
     clearTimeout(timerReinicio); timerReinicio = null;
     if (!retomar) reinicioArmado = false;
@@ -407,15 +421,57 @@
     }
     return false;
   }
+  function descreverPendencia(incluirTempo = true) {
+    if (!pendente) return 'Nenhuma ação pendente.';
+    const tipos = { ataque: 'Ataque', fechamento: 'Fechamento do resultado', alivio: 'Poção de vigor', restauradora: 'Poção de vigor maior' };
+    const segundos = Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000);
+    return `${tipos[pendente.tipo] || 'Ação'} aguardando confirmação${incluirTempo ? ` há ${segundos} segundos ativos` : ''}.`;
+  }
+  function recuperarAtaqueSemResultado() {
+    motivoRecuperacao = '';
+    if (pendente?.tipo !== 'ataque' || agoraAtivo() - pendente.inicio <= 45000) return false;
+    const resultados = todos('button.hero-header-results, button[aria-label="Ver resultados pendentes"]');
+    if (resultados.length) {
+      motivoRecuperacao = 'Há resultados pendentes no jogo. Aguardando a abertura do resultado.';
+      ataquePronto = null;
+      if (resultados.length === 1 && !pendente.tentouAbrirResultados && habilitado(resultados[0])) {
+        pendente.tentouAbrirResultados = true;
+        clicar(resultados[0]);
+        status('Abrindo os resultados pendentes para localizar a confirmação do ataque.');
+      }
+      return false;
+    }
+    const criatura = localizarCriatura(config.criatura), botao = botaoAtacar(), modo = botaoSoResultado();
+    const pronto = telaCacada() && modoResultadoConfirmado(modo) &&
+      criatura && selecionada(criatura) && habilitado(botao) && !botao.closest('[aria-busy="true"]') &&
+      !estadoExpedicao().ativa && !todos('dialog[open], [role="dialog"], [aria-modal="true"]').length;
+    if (!pronto) { ataquePronto = null; motivoRecuperacao = 'O jogo ainda não libera uma nova caçada para a criatura configurada.'; return false; }
+    motivoRecuperacao = 'Nova caçada liberada. Aguardando 10 segundos de estabilidade antes de reavaliar o ciclo.';
+    if (ataquePronto?.registro !== pendente) {
+      ataquePronto = { registro: pendente, desde: agoraAtivo(), botao, criatura, modo };
+      return false;
+    }
+    if (ataquePronto.botao !== botao || ataquePronto.criatura !== criatura || ataquePronto.modo !== modo) {
+      ataquePronto = { registro: pendente, desde: agoraAtivo(), botao, criatura, modo };
+      return false;
+    }
+    if (agoraAtivo() - ataquePronto.desde < 10000) return false;
+    // A interface está estável e pronta; reavalia um novo ciclo sem presumir o resultado anterior.
+    pendente = null; ataquePronto = null; selecionando = null;
+    status('O jogo liberou uma nova caçada sem exibir o resultado anterior. Reavaliando o ciclo com o vigor atual.');
+    return true;
+  }
   async function tentarReinicio() {
     timerReinicio = null;
     if (!reinicioArmado || timer || preparacao || removido || host.hidden) return;
     try {
-      if (avisosBloqueando()) return agendarReinicio('Aguardando a verificação ou o aviso do jogo ser concluído.');
-      if (document.hidden && !config.continuarOculta) return agendarReinicio('Aguardando a aba do jogo ficar visível.');
+      if (avisosBloqueando()) { ataquePronto = null; return agendarReinicio('Aguardando a verificação ou o aviso do jogo ser concluído.'); }
+      if (document.hidden && !config.continuarOculta) { ataquePronto = null; return agendarReinicio('Aguardando a aba do jogo ficar visível.'); }
       const hp = lerVigor(), r = resultado();
-      if (hp === null) return agendarReinicio('Aguardando uma leitura válida de vigor.');
-      if (!confirmarAcaoPendente(hp, r)) return agendarReinicio('Aguardando o jogo confirmar a última ação, sem repetir cliques.');
+      if (hp === null) { ataquePronto = null; return agendarReinicio('Aguardando uma leitura válida de vigor.'); }
+      if (!confirmarAcaoPendente(hp, r) && !recuperarAtaqueSemResultado()) {
+        return agendarReinicio(`${descreverPendencia(false)} ${motivoRecuperacao || 'Aguardando confirmação do jogo, sem repetir cliques.'}`);
+      }
       if (estadoExpedicao().ativa) return agendarReinicio('Há uma expedição ativa. Aguardando ela terminar ou ser pausada no jogo.');
       selecionando = null;
       await iniciar(true);
@@ -434,7 +490,7 @@
       `Botão para caçar: ${encontrado(botaoAtacar())}.`,
       `Poção de vigor: ${encontrado(botaoPocao('alivio'))}.`,
       `Poção de vigor maior: ${encontrado(botaoPocao('restauradora'))}.`,
-      pendente ? 'Ainda estou aguardando o jogo confirmar a última ação.' : 'Nenhuma ação de caçada foi feita nesta conferência.'
+      pendente ? descreverPendencia() : 'Nenhuma ação de caçada foi feita nesta conferência.'
     ].join('\n')); return d;
   }
   function ciclo() {

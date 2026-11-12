@@ -8,7 +8,7 @@
   const tentativas = new Map();
   let ativo = true, agendado = false, verificando = false, total = 0;
   let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
-  const selosEnviados = new WeakMap();
+  let seloPronto = false;
 
   function localizarVerificacaoHumana() {
     const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"]')]
@@ -23,13 +23,11 @@
       }
       return titulo.parentElement;
     }))];
-    if (paineis.length !== 1) return { painel: null, botao: null, resposta: '' };
+    if (paineis.length !== 1) return { painel: null, botao: null };
     const painel = paineis[0];
     const botoes = [...painel.querySelectorAll('button, [role="button"]')]
       .filter(botao => visivel(botao) && /^apresentar (?:o )?selo$/.test(normal(botao.getAttribute('aria-label') || botao.textContent)));
-    const respostas = [...painel.querySelectorAll('input[name="cf-turnstile-response"]')]
-      .map(input => input.value.trim()).filter(Boolean);
-    return { painel, botao: botoes.length === 1 ? botoes[0] : null, resposta: respostas.length === 1 ? respostas[0] : '' };
+    return { painel, botao: botoes.length === 1 ? botoes[0] : null };
   }
   function registrarVerificacao(presente) {
     if (presente && inicioVerificacao === null) inicioVerificacao = Date.now();
@@ -38,6 +36,7 @@
       inicioVerificacao = null;
     }
     verificacaoHumana = presente;
+    if (!presente) seloPronto = false;
   }
 
   function avisosAtualizacao() {
@@ -91,12 +90,8 @@
       const selo = localizarVerificacaoHumana();
       registrarVerificacao(!!selo);
       if (selo) {
-        // Apenas confirma a resposta já emitida pelo widget. Não interage com o CAPTCHA.
-        if (selo.botao && selo.resposta && habilitado(selo.botao) && selosEnviados.get(selo.painel) !== selo.resposta) {
-          selosEnviados.set(selo.painel, selo.resposta);
-          selo.botao.click();
-          console.info('[Auren avisos] Selo já validado apresentado. Aguardando confirmação do jogo.');
-        }
+        // O jogo exige um clique manual confiável para apresentar o selo.
+        seloPronto = !!selo.botao && habilitado(selo.botao);
         return true; // Nenhum aviso ou ação por trás da verificação pode ser acionado.
       }
       for (const [painel] of tentativas) if (!visivel(painel)) tentativas.delete(painel);
@@ -163,6 +158,7 @@
     verificar,
     parar() { ativo = false; observer.disconnect(); clearInterval(timer); tentativas.clear(); registrarVerificacao(false); },
     get verificacaoHumana() { return verificacaoHumana; },
+    get seloPronto() { return seloPronto; },
     get tempoVerificacaoHumana() { return tempoVerificacao + (inicioVerificacao === null ? 0 : Math.max(0, Date.now() - inicioVerificacao)); },
     get fechamentos() { return total; }
   };

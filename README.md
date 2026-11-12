@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.17, com espera pela verificação do Cloudflare e confirmação do selo já validado.
+Extensão Chrome de caçada v3.3.18, com recuperação de ataques sem resultado quando o jogo libera uma nova caçada.
 
 ## Instalar
 
@@ -48,7 +48,7 @@ Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusiv
 
 Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
-Para retomar, aguarda uma leitura válida de vigor entre zero e 100% e a confirmação de ações pendentes. Um ataque sem resultado ou uma poção sem recuperação confirmada nunca é repetido apenas porque o prazo expirou. Se a confirmação chegar mais tarde, a recuperação continua sem descartar esse registro. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
+Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado, nenhuma expedição ativa e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Uma expedição ativa também impede o reinício automático até terminar ou ser pausada no jogo.
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
@@ -56,9 +56,9 @@ Para retomar, aguarda uma leitura válida de vigor entre zero e 100% e a confirm
 
 Quando a janela **A guarda pede um sinal** aparece, o bot aguarda e não aciona ataques, poções, seleção de criaturas ou avisos atrás dela. O tempo em que a janela permanece aberta não consome os prazos de confirmação de ações e de preparação da caçada. Ao desaparecer, o acompanhamento continua com as ações pendentes preservadas. Pausar e Ocultar painel continuam interrompendo a caçada.
 
-A extensão não interage com o CAPTCHA nem resolve desafios. Se o Cloudflare exigir interação, conclua a validação na janela do jogo. Quando o widget já tiver emitido uma resposta no campo padrão e o botão estiver habilitado, a extensão clica em **Apresentar o selo** uma vez por resposta e aguarda a confirmação do jogo. Se o campo não estiver disponível, apresente o selo manualmente. Essa confirmação funciona mesmo com a caçada pausada, assim como o fechamento dos demais avisos.
+A extensão não interage com o CAPTCHA nem resolve desafios. Conclua a validação e clique manualmente em **Apresentar o selo**: o jogo exige um clique manual confiável mesmo quando o widget mostra Sucesso. O painel avisa quando o botão está pronto. A extensão não tenta simular esse clique nem acessa a resposta do widget.
 
-Uma ação ainda sem confirmação depois da verificação continua sujeita ao prazo original de 45 segundos de tempo ativo. A extensão não apaga o registro nem repete ataques ou poções sem confirmação. **Conferir jogo** também registra no diagnóstico do console se a verificação está aberta e há quantos segundos ativos a ação está pendente, sem registrar a resposta do Cloudflare.
+Uma ação ainda sem confirmação depois da verificação continua sujeita ao prazo original de 45 segundos fora da verificação. A recuperação de ataques depende das condições descritas acima; poções continuam exigindo confirmação. As mensagens indicam o tipo da ação pendente, e **Conferir jogo** mostra também há quantos segundos ativos ela está aguardando. O diagnóstico não registra a resposta do Cloudflare.
 
 ## Mover o painel
 
