@@ -9,10 +9,47 @@
   let ativo = true, agendado = false, verificando = false, total = 0;
   let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
   let seloPronto = false;
+  let tipoVerificacao = '', configAvisos = {ativadas:false, repetir:true}, avisoAtual = null;
+  let estadoAvisos = 'Avisos no Windows desativados.', ouvirAvisos = null;
+  let revisaoAvisos = 0;
+  function informarAvisos(texto) {
+    estadoAvisos = texto;
+    ouvirAvisos?.(texto);
+  }
+  function carregarAvisos(valor) {
+    configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false};
+    avisoAtual = null;
+    informarAvisos(configAvisos.ativadas ? 'Avisos no Windows ativados. Aguardando uma verificação.' : 'Avisos no Windows desativados.');
+  }
+  try {
+    globalThis.chrome?.storage?.local?.get('aurenNotificacoesV1').then(saved=>{if (!revisaoAvisos) carregarAvisos(saved.aurenNotificacoesV1);},()=>{if (!revisaoAvisos) carregarAvisos(null);});
+    globalThis.chrome?.storage?.onChanged?.addListener((changes, area)=>{
+      if (area === 'local' && changes.aurenNotificacoesV1) { revisaoAvisos++; carregarAvisos(changes.aurenNotificacoesV1.newValue); }
+    });
+  } catch { carregarAvisos(null); }
+  function avisarNoWindows(selo) {
+    if (!configAvisos.ativadas || !ativo) return;
+    if (!avisoAtual || avisoAtual.painel !== selo.painel || avisoAtual.tipo !== selo.tipo) {
+      avisoAtual = {painel:selo.painel, tipo:selo.tipo, id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null};
+    }
+    const aviso = avisoAtual, agora = Date.now();
+    if (aviso.enviando || (aviso.enviado !== null && (!configAvisos.repetir || agora - aviso.enviado < 60000)) ||
+        (aviso.tentativa !== null && agora - aviso.tentativa < 30000)) return;
+    if (aviso.enviado !== null) { aviso.id = crypto.randomUUID(); aviso.enviado = null; }
+    aviso.enviando = true; aviso.tentativa = agora;
+    informarAvisos('Enviando aviso ao PC receptor…');
+    Promise.resolve().then(()=>chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'captcha', eventoId:aviso.id, tipo:aviso.tipo}))
+      .then(result=>{
+        if (!result?.ok) throw Error(result?.erro || 'O receptor não confirmou o aviso.');
+        aviso.enviado = Date.now();
+        if (avisoAtual === aviso) informarAvisos('Aviso confirmado pelo receptor no Windows.');
+      }).catch(error=>{if (avisoAtual === aviso) informarAvisos(`Falha no aviso: ${error.message}`);})
+      .finally(()=>{aviso.enviando = false;});
+  }
 
   function localizarVerificacaoHumana() {
     const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"]')]
-      .filter(el => visivel(el) && normal(el.textContent) === 'a guarda pede um sinal');
+      .filter(el => visivel(el) && ['a guarda pede um sinal', 'de quem e esta sombra'].includes(normal(el.textContent).replace(/\?$/, '')));
     if (!titulos.length) return null;
     const paineis = [...new Set(titulos.map(titulo => {
       const dialogo = titulo.closest('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]');
@@ -23,11 +60,12 @@
       }
       return titulo.parentElement;
     }))];
-    if (paineis.length !== 1) return { painel: null, botao: null };
+    const tipo = normal(titulos[0].textContent).startsWith('de quem') ? 'sombra' : 'cloudflare';
+    if (paineis.length !== 1) return { painel: null, botao: null, tipo };
     const painel = paineis[0];
     const botoes = [...painel.querySelectorAll('button, [role="button"]')]
       .filter(botao => visivel(botao) && /^apresentar (?:o )?selo$/.test(normal(botao.getAttribute('aria-label') || botao.textContent)));
-    return { painel, botao: botoes.length === 1 ? botoes[0] : null };
+    return { painel, botao: botoes.length === 1 ? botoes[0] : null, tipo };
   }
   function registrarVerificacao(presente) {
     if (presente && inicioVerificacao === null) inicioVerificacao = Date.now();
@@ -36,7 +74,10 @@
       inicioVerificacao = null;
     }
     verificacaoHumana = presente;
-    if (!presente) seloPronto = false;
+    if (!presente) {
+      seloPronto = false; tipoVerificacao = '';
+      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação encerrada. Aguardando novos avisos.' : 'Avisos no Windows desativados.'); }
+    }
   }
 
   function avisosAtualizacao() {
@@ -92,6 +133,8 @@
       if (selo) {
         // O jogo exige um clique manual confiável para apresentar o selo.
         seloPronto = !!selo.botao && habilitado(selo.botao);
+        tipoVerificacao = selo.tipo;
+        avisarNoWindows(selo);
         return true; // Nenhum aviso ou ação por trás da verificação pode ser acionado.
       }
       for (const [painel] of tentativas) if (!visivel(painel)) tentativas.delete(painel);
@@ -159,6 +202,8 @@
     parar() { ativo = false; observer.disconnect(); clearInterval(timer); tentativas.clear(); registrarVerificacao(false); },
     get verificacaoHumana() { return verificacaoHumana; },
     get seloPronto() { return seloPronto; },
+    get tipoVerificacao() { return tipoVerificacao; },
+    ouvirAvisosWindows(callback) { ouvirAvisos = callback; callback(estadoAvisos); },
     get tempoVerificacaoHumana() { return tempoVerificacao + (inicioVerificacao === null ? 0 : Math.max(0, Date.now() - inicioVerificacao)); },
     get fechamentos() { return total; }
   };

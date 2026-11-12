@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.19, com abas de Caçada e Expedição e renovação opcional de jornadas em paralelo.
+Extensão Chrome de caçada v3.3.20, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows quando aparecer uma verificação.
 
 ## Instalar
 
@@ -51,6 +51,18 @@ Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Ini
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+
+## Avisos no Windows (v3.3.20)
+
+Execute o **AurenBot Alertas** no PC Windows que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
+
+No painel da extensão, clique em **Configurar avisos no Windows**. Marque **Enviar avisos ao meu PC**, informe o endereço do receptor e sua chave, salve, autorize o acesso a esse endereço e envie um teste. Se o jogo roda na VPS, use o IP **Tailscale do PC Windows**, e mantenha ambos conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador.
+
+Detecta as janelas **A guarda pede um sinal** e **De quem é esta sombra?**, inclusive com a caçada pausada ou o painel oculto. O PC mostra uma notificação nativa e emite um som, se habilitado no receptor. Por padrão, repete a cada minuto enquanto a janela permanecer aberta; essa repetição pode ser desmarcada. Após falhas de conexão, tenta novamente em 30 segundos. O painel informa quando o receptor confirmou o aviso ou quando houve falha. A confirmação significa que o receptor aceitou o evento, não que o Windows exibiu o balão ou que o usuário ouviu o som.
+
+A configuração dos avisos pode ser alterada sem pausar a caçada. Nenhuma imagem, resposta de CAPTCHA, chave de IA ou dado do personagem é enviado: somente um identificador aleatório e o tipo de verificação. A chave do receptor é enviada no cabeçalho de autenticação. Use na rede local ou por Tailscale; não exponha a porta diretamente à Internet.
+
+O executável precisa permanecer em execução, com o PC ligado e sem suspensão. Fechar a aba de configuração do receptor não encerra a aplicação. Os prazos e a automação aguardam a resolução manual da verificação.
 
 ## Verificação do Cloudflare
 
@@ -108,7 +120,7 @@ Ataque em 80%, poção de vigor maior até 30%, poção de vigor até 70%, econo
 
 ## Observações
 
-A extensão atua somente em `https://auren-online.com/` e `https://www.auren-online.com/`, pela interface visível. Solicita apenas a permissão de armazenamento. Não transmite configurações a servidores.
+A automação atua somente em `https://auren-online.com/` e `https://www.auren-online.com/`, pela interface visível. Usa armazenamento local. Os avisos opcionais solicitam acesso ao endereço do receptor informado pelo usuário; o envio parte do service worker da extensão. As demais configurações da automação permanecem locais.
 
 Não execute o script de console junto com a extensão, nem duas versões da extensão na mesma página. Em uma atualização, clique em Recarregar na página de extensões e depois recarregue o jogo.
 

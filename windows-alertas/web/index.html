@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AurenBot Alertas</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><header><p class="eyebrow">RECEPTOR NO SEU PC</p><h1>AurenBot Alertas</h1><p>O bot avisa quando precisa da sua resposta. A verificação continua sendo feita por você no jogo.</p></header>
+<section><h2>Conectar a extensão</h2><ol><li>Escolha o IP do Tailscale deste PC quando o bot estiver na VPS.</li><li>Na extensão, abra <strong>Configurar avisos no Windows</strong>.</li><li>Cole o endereço e a chave abaixo, salve e envie um teste.</li></ol>
+<label for="address">Endereço do receptor</label><div class="row"><select id="address"></select><button id="copyAddress">Copiar</button></div><small>127.0.0.1 funciona apenas quando o bot está neste mesmo PC. Para outro computador, use o IP da rede ou do Tailscale.</small>
+<label for="token">Chave de acesso</label><div class="row"><input id="token" type="password" readonly><button id="copyToken">Copiar chave</button></div><small>A chave pertence somente a este receptor. Não é uma chave de IA.</small></section>
+<section><h2>Testar e ouvir</h2><label class="check"><input id="sound" type="checkbox"> Emitir aviso sonoro neste PC</label><button id="test">Testar notificação do Windows</button><p id="status" role="status">Carregando…</p><p class="note">O receptor precisa permanecer aberto e o PC ligado. Você pode fechar esta aba: a aplicação continua recebendo os avisos. O modo Não incomodar do Windows pode ocultar os balões.</p></section>
+<section><h2>Últimos avisos</h2><ul id="events"><li>Nenhum aviso recebido ainda.</li></ul></section>
+<footer><button id="stop" class="secondary">Encerrar receptor</button><span>Ao encerrar, os avisos deixam de chegar a este PC.</span></footer></main></body></html>

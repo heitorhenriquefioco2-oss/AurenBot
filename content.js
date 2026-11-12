@@ -18,7 +18,7 @@
   const agoraAtivo = () => Date.now() - (window.aurenAvisos?.tempoVerificacaoHumana || 0);
   function avisosBloqueando(reportar = status) {
     const bloqueado = window.aurenAvisos?.verificar();
-    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.seloPronto ? 'Cloudflare validado. Clique manualmente em Apresentar o selo para continuar.' : 'Verificação do Cloudflare aberta. Conclua a validação e apresente o selo manualmente para continuar.');
+    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.tipoVerificacao === 'sombra' ? 'Desafio de sombra aberto. Responda manualmente no jogo para continuar.' : window.aurenAvisos.seloPronto ? 'Cloudflare validado. Clique manualmente em Apresentar o selo para continuar.' : 'Verificação do Cloudflare aberta. Conclua a validação e apresente o selo manualmente para continuar.');
     return !!bloqueado || !!window.aurenAvisos?.verificacaoHumana;
   }
   function percentual(valor, campo) {
@@ -343,7 +343,7 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.19</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.20</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Configure sua caçada e, se quiser, mantenha uma expedição em paralelo. Quando estiver pronto, clique em Iniciar.</p>
     <nav role="tablist" aria-label="Configurações do bot"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
@@ -367,11 +367,19 @@
     <small id="ajudaContinuarOculta">Útil em VPS ao desconectar o RDP. Mantenha o jogo e o Chrome abertos. O navegador pode reduzir a frequência dos ciclos em segundo plano.</small>
     <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Reiniciar automaticamente após uma parada por erro</label>
     <small id="ajudaReinicio">Após clicar em Iniciar, verifica a cada 10 segundos se já pode retomar. Pausar, Ocultar painel e alterar configurações cancelam o reinício. Aguarda vigor válido e confirmação das ações pendentes.</small>
+    <nav><button id="configurarAvisos">Configurar avisos no Windows</button></nav><small id="statusAvisos" aria-live="polite">Avisos no Windows desativados.</small>
     <nav><button id="diagnostico">Conferir jogo</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
     <small>Ocultar o painel também pausa a caçada. Para abrir de novo, clique no ícone da extensão. Os avisos reconhecidos continuam sendo fechados mesmo com a caçada pausada.</small>
     <output id="status" aria-live="polite">Tudo pronto para configurar. A caçada só começa quando você clicar em Iniciar.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
+  window.aurenAvisos?.ouvirAvisosWindows?.(texto=>{ui('statusAvisos').textContent=texto;});
+  ui('configurarAvisos').onclick = async () => {
+    try {
+      const result = await chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'configurar'});
+      if (!result?.ok) throw Error(result?.erro || 'Não consegui abrir a configuração dos avisos.');
+    } catch(error) { ui('statusAvisos').textContent=error.message; }
+  };
   function abrirAba(id) {
     for (const nome of ['Cacada', 'Expedicao']) {
       const ativa = nome === id;
