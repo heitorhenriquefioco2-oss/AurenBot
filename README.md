@@ -68,6 +68,14 @@ A configuração dos avisos pode ser alterada sem pausar a caçada. Nenhuma imag
 
 O executável precisa permanecer em execução, com o PC ligado e sem suspensão. Fechar a aba de configuração do receptor não encerra a aplicação. Os prazos e a automação aguardam a resolução manual da verificação.
 
+## Receptor Android (APK)
+
+O aplicativo **AurenBot Alertas para Android 1.0.0** recebe os mesmos avisos, com notificação nativa, som e vibração opcionais. Requer Android 8 ou posterior e funciona com a extensão v3.3.20 ou posterior, sem alterar a automação.
+
+Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para a configuração da extensão **Configurar avisos no Windows** (esse botão também aceita Android). Salve, autorize o endereço e envie um teste. A extensão envia para um receptor por vez; usar o endereço do celular substitui o destino Windows.
+
+Para receber com a tela apagada, mantenha o serviço ligado e permita uso de bateria sem restrições para o aplicativo e o Tailscale. O receptor mantém a CPU acordada enquanto ligado, consumindo mais bateria; as políticas de rede e bateria do Android/fabricante ainda se aplicam. Não usa push externo. Após reiniciar o celular, abra o aplicativo e inicie novamente. Consulte [as instruções e o código do APK](android-alertas/README.md).
+
 ## Verificação do Cloudflare
 
 Quando a janela **A guarda pede um sinal** aparece, o bot aguarda e não aciona ataques, poções, seleção de criaturas ou avisos atrás dela. O tempo em que a janela permanece aberta não consome os prazos de confirmação de ações e de preparação da caçada. Ao desaparecer, o acompanhamento continua com as ações pendentes preservadas. Pausar e Ocultar painel continuam interrompendo a caçada.
