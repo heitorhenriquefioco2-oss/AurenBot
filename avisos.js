@@ -10,7 +10,7 @@
   let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
   let seloPronto = false;
   let tipoVerificacao = '', configAvisos = {ativadas:false, repetir:true}, avisoAtual = null;
-  let estadoAvisos = 'Avisos no Windows desativados.', ouvirAvisos = null;
+  let estadoAvisos = 'Notificações desativadas.', ouvirAvisos = null;
   let revisaoAvisos = 0;
   function informarAvisos(texto) {
     estadoAvisos = texto;
@@ -19,7 +19,7 @@
   function carregarAvisos(valor) {
     configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false};
     avisoAtual = null;
-    informarAvisos(configAvisos.ativadas ? 'Avisos no Windows ativados. Aguardando uma verificação.' : 'Avisos no Windows desativados.');
+    informarAvisos(configAvisos.ativadas ? 'Notificações ativadas. Aguardando uma verificação.' : 'Notificações desativadas.');
   }
   try {
     globalThis.chrome?.storage?.local?.get('aurenNotificacoesV1').then(saved=>{if (!revisaoAvisos) carregarAvisos(saved.aurenNotificacoesV1);},()=>{if (!revisaoAvisos) carregarAvisos(null);});
@@ -42,7 +42,7 @@
       .then(result=>{
         if (!result?.ok) throw Error(result?.erro || 'O receptor não confirmou o aviso.');
         aviso.enviado = Date.now();
-        if (avisoAtual === aviso) informarAvisos('Aviso confirmado pelo receptor no Windows.');
+        if (avisoAtual === aviso) informarAvisos('Aviso confirmado pelo receptor.');
       }).catch(error=>{if (avisoAtual === aviso) informarAvisos(`Falha no aviso: ${error.message}`);})
       .finally(()=>{aviso.enviando = false;});
   }
@@ -76,7 +76,7 @@
     verificacaoHumana = presente;
     if (!presente) {
       seloPronto = false; tipoVerificacao = '';
-      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação encerrada. Aguardando novos avisos.' : 'Avisos no Windows desativados.'); }
+      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação encerrada. Aguardando novos avisos.' : 'Notificações desativadas.'); }
     }
   }
 

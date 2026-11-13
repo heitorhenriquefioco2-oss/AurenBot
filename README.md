@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.21, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.22, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -56,11 +56,11 @@ Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções s
 
 **Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
-## Avisos no Windows (v3.3.20)
+## Notificações no Windows e Android
 
-Execute o **AurenBot Alertas** no PC Windows que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
+Para receber no Windows, execute o **AurenBot Alertas** no PC que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
 
-No painel da extensão, clique em **Configurar avisos no Windows**. Marque **Enviar avisos ao meu PC**, informe o endereço do receptor e sua chave, salve, autorize o acesso a esse endereço e envie um teste. Se o jogo roda na VPS, use o IP **Tailscale do PC Windows**, e mantenha ambos conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador.
+No painel da extensão, clique em **Notificações: Windows e Android**. Em **Receber notificações em**, escolha **Windows** ou **Android**. Ative o envio de avisos, informe o endereço do receptor e sua chave, salve, autorize o acesso a esse endereço e envie um teste. Se o jogo roda na VPS, use o IP **Tailscale do dispositivo receptor** (PC ou celular), e mantenha ambos conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador.
 
 Detecta as janelas **A guarda pede um sinal** e **De quem é esta sombra?**, inclusive com a caçada pausada ou o painel oculto. O PC mostra uma notificação nativa e emite um som, se habilitado no receptor. Por padrão, repete a cada minuto enquanto a janela permanecer aberta; essa repetição pode ser desmarcada. Após falhas de conexão, tenta novamente em 30 segundos. O painel informa quando o receptor confirmou o aviso ou quando houve falha. A confirmação significa que o receptor aceitou o evento, não que o Windows exibiu o balão ou que o usuário ouviu o som.
 
@@ -68,11 +68,13 @@ A configuração dos avisos pode ser alterada sem pausar a caçada. Nenhuma imag
 
 O executável precisa permanecer em execução, com o PC ligado e sem suspensão. Fechar a aba de configuração do receptor não encerra a aplicação. Os prazos e a automação aguardam a resolução manual da verificação.
 
+A escolha **Android** exibe as instruções de instalação/conexão e identifica os campos do celular. O menu **Windows** mantém as instruções do PC. As configurações anteriores de endereço, chave, ativação e repetição são preservadas. Ao trocar o dispositivo, confira o endereço e a chave; o envio usa um receptor por vez. Alterações precisam ser salvas antes de enviar um teste. Configurar notificações não pausa a caçada.
+
 ## Receptor Android (APK)
 
 O aplicativo **AurenBot Alertas para Android 1.0.0** recebe os mesmos avisos, com notificação nativa, som e vibração opcionais. Requer Android 8 ou posterior e funciona com a extensão v3.3.20 ou posterior, sem alterar a automação.
 
-Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para a configuração da extensão **Configurar avisos no Windows** (esse botão também aceita Android). Salve, autorize o endereço e envie um teste. A extensão envia para um receptor por vez; usar o endereço do celular substitui o destino Windows.
+Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Notificações: Windows e Android** da extensão, selecionando **Android**. Salve, autorize o endereço e envie um teste. A extensão envia para um receptor por vez; usar o endereço do celular substitui o destino Windows.
 
 Para receber com a tela apagada, mantenha o serviço ligado e permita uso de bateria sem restrições para o aplicativo e o Tailscale. O receptor mantém a CPU acordada enquanto ligado, consumindo mais bateria; as políticas de rede e bateria do Android/fabricante ainda se aplicam. Não usa push externo. Após reiniciar o celular, abra o aplicativo e inicie novamente. Consulte [as instruções e o código do APK](android-alertas/README.md).
 

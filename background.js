@@ -20,7 +20,7 @@ async function enviarAvisoWindows(msg) {
   const cfg = salvo.aurenNotificacoesV1;
   if (!cfg?.ativadas) throw Error('Ative e salve os avisos nas configurações da extensão.');
   const destino = destinoAvisos(cfg.endereco);
-  if (!/^[a-zA-Z0-9_-]{32,256}$/.test(cfg.chave || '')) throw Error('A chave do receptor está inválida. Copie a chave exibida na aplicação do Windows.');
+  if (!/^[a-zA-Z0-9_-]{32,256}$/.test(cfg.chave || '')) throw Error('A chave do receptor está inválida. Copie a chave exibida na aplicação receptora.');
   if (!(await chrome.permissions.contains({origins:[destino.permissao]}))) throw Error('Salve novamente a configuração para autorizar o acesso ao receptor.');
   const controller = new AbortController();
   const timeout = setTimeout(()=>controller.abort(), 5000);
@@ -35,7 +35,7 @@ async function enviarAvisoWindows(msg) {
     if (data.ok !== true) throw Error('O receptor não confirmou o recebimento.');
     return {ok:true};
   } catch(error) {
-    if (error.name === 'AbortError' || error instanceof TypeError) throw Error('Não consegui alcançar o PC receptor. Confira se a aplicação e o Tailscale estão ligados e se a porta 8765 está liberada no firewall.');
+    if (error.name === 'AbortError' || error instanceof TypeError) throw Error('Não consegui alcançar o dispositivo receptor. Confira se a aplicação e o Tailscale estão ligados e se a porta 8765 está liberada no firewall.');
     throw error;
   } finally { clearTimeout(timeout); }
 }

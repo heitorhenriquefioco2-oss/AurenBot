@@ -1,2 +1,34 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AurenBot — avisos no Windows</title><link rel="stylesheet" href="notificacoes.css"><script src="notificacoes.js" defer></script></head><body><main><p class="eyebrow">AURENBOT</p><h1>Avisos no Windows</h1><p>Receba uma notificação com som no PC quando uma verificação aparecer no jogo. Nenhuma imagem do CAPTCHA é enviada.</p><form id="config"><label class="check"><input id="ativadas" type="checkbox"> Enviar avisos ao meu PC</label><label for="endereco">Endereço do receptor</label><input id="endereco" type="url" placeholder="http://100.64.0.10:8765" autocomplete="off"><small>Copie o endereço da aplicação AurenBot Alertas. Na VPS, use o IP Tailscale do PC receptor.</small><label for="chave">Chave de acesso do receptor</label><input id="chave" type="password" autocomplete="off"><small>Copie a chave da aplicação no PC. Não use uma chave de Gemini ou de outro serviço.</small><label class="check"><input id="repetir" type="checkbox" checked> Repetir o aviso a cada minuto enquanto a verificação estiver aberta</label><div class="actions"><button type="submit">Salvar e autorizar endereço</button><button id="testar" type="button">Enviar aviso de teste</button></div></form><output id="status" role="status">Carregando configuração…</output><p class="note">A aplicação precisa estar aberta no PC. Os avisos funcionam também com a caçada pausada. A verificação é resolvida manualmente pelo PC ou pelo Android via VNC.</p></main></body></html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AurenBot — notificações</title>
+  <link rel="stylesheet" href="notificacoes.css"><script src="notificacoes.js" defer></script>
+</head>
+<body><main>
+  <p class="eyebrow">AURENBOT</p><h1>Notificações</h1>
+  <p>Receba um aviso no celular Android ou no PC quando uma verificação aparecer no jogo. Nenhuma imagem do CAPTCHA é enviada.</p>
+  <form id="config">
+    <label for="destino">Receber notificações em</label>
+    <select id="destino"><option value="windows">Windows</option><option value="android">Android</option></select>
+    <small>Um dispositivo por vez. Os avisos serão enviados ao endereço configurado abaixo.</small>
+    <section id="androidAjuda" class="guide" hidden aria-labelledby="androidTitulo">
+      <h2 id="androidTitulo">Conectar o celular Android</h2>
+      <ol><li>Abra o aplicativo <strong>AurenBot Alertas</strong>, permita notificações e toque em <strong>Iniciar receptor</strong>.</li>
+        <li>Conecte o celular e a VPS ao Tailscale. No aplicativo, copie o endereço do celular (100.x.x.x) e a chave.</li>
+        <li>Cole os dados abaixo, ative os avisos, salve e envie um teste.</li></ol>
+      <p>Para receber com a tela apagada, permita uso de bateria sem restrições para o aplicativo e o Tailscale. Som e vibração são controlados no celular.</p>
+    </section>
+    <label class="check"><input id="ativadas" type="checkbox"> <span id="rotuloAtivar">Enviar avisos ao meu PC Windows</span></label>
+    <label for="endereco" id="rotuloEndereco">Endereço do receptor Windows</label>
+    <input id="endereco" type="url" placeholder="http://100.64.0.10:8765" autocomplete="off">
+    <small id="ajudaEndereco">Copie o endereço da aplicação AurenBot Alertas. Na VPS, use o IP Tailscale do PC receptor.</small>
+    <label for="chave">Chave de acesso do receptor</label>
+    <input id="chave" type="password" autocomplete="off">
+    <small id="ajudaChave">Copie a chave da aplicação no PC. Não use uma chave de IA.</small>
+    <label class="check"><input id="repetir" type="checkbox" checked> Repetir o aviso a cada minuto enquanto a verificação estiver aberta</label>
+    <div class="actions"><button type="submit">Salvar e autorizar endereço</button><button id="testar" type="button">Enviar aviso de teste</button></div>
+  </form>
+  <output id="status" role="status">Carregando configuração…</output>
+  <p class="note" id="notaReceptor">A aplicação precisa estar aberta no dispositivo receptor. Os avisos funcionam também com a caçada pausada. Resolva a verificação manualmente pelo VNC.</p>
+</main></body></html>
