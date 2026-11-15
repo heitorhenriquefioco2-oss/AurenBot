@@ -3,32 +3,42 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>AurenBot — notificações</title>
-  <link rel="stylesheet" href="notificacoes.css"><script src="notificacoes.js" defer></script>
+  <link rel="stylesheet" href="notificacoes.css"><script src="notificacoes-config.js" defer></script><script src="notificacoes.js" defer></script>
 </head>
 <body><main>
   <p class="eyebrow">AURENBOT</p><h1>Notificações</h1>
-  <p>Receba um aviso no celular Android ou no PC quando uma verificação aparecer no jogo. Nenhuma imagem do CAPTCHA é enviada.</p>
-  <form id="config">
-    <label for="destino">Receber notificações em</label>
-    <select id="destino"><option value="windows">Windows</option><option value="android">Android</option></select>
-    <small>Um dispositivo por vez. Os avisos serão enviados ao endereço configurado abaixo.</small>
-    <section id="androidAjuda" class="guide" hidden aria-labelledby="androidTitulo">
-      <h2 id="androidTitulo">Conectar o celular Android</h2>
-      <ol><li>Abra o aplicativo <strong>AurenBot Alertas</strong>, permita notificações e toque em <strong>Iniciar receptor</strong>.</li>
-        <li>Conecte o celular e a VPS ao Tailscale. No aplicativo, copie o endereço do celular (100.x.x.x) e a chave.</li>
-        <li>Cole os dados abaixo, ative os avisos, salve e envie um teste.</li></ol>
-      <p>Para receber com a tela apagada, permita uso de bateria sem restrições para o aplicativo e o Tailscale. Som e vibração são controlados no celular.</p>
+  <p>Receba os avisos no Windows e no Android ao mesmo tempo. O endereço e a chave de cada dispositivo ficam salvos separadamente neste perfil do Chrome.</p>
+  <form id="config" novalidate><fieldset id="campos" disabled>
+    <label class="check"><input id="ativadas" type="checkbox"> Ativar notificações</label>
+    <section class="device" aria-labelledby="windowsTitulo">
+      <h2 id="windowsTitulo">Windows</h2>
+      <label class="check"><input id="windowsAtivado" type="checkbox"> Enviar avisos ao Windows</label>
+      <label for="windowsEndereco">Endereço do receptor Windows</label>
+      <input id="windowsEndereco" type="url" placeholder="http://100.64.0.10:8765" autocomplete="off">
+      <small>Abra o AurenBot Alertas no PC e copie o endereço. Na VPS, use o IP Tailscale do PC.</small>
+      <label for="windowsChave">Chave de acesso do Windows</label>
+      <input id="windowsChave" type="password" autocomplete="off">
+      <small>Copie a chave da aplicação no PC. Ela fica salva mesmo se você desmarcar este dispositivo.</small>
+      <button id="testarWindows" type="button">Testar Windows</button>
+      <p id="windowsStatus" class="device-status" aria-live="polite"></p>
     </section>
-    <label class="check"><input id="ativadas" type="checkbox"> <span id="rotuloAtivar">Enviar avisos ao meu PC Windows</span></label>
-    <label for="endereco" id="rotuloEndereco">Endereço do receptor Windows</label>
-    <input id="endereco" type="url" placeholder="http://100.64.0.10:8765" autocomplete="off">
-    <small id="ajudaEndereco">Copie o endereço da aplicação AurenBot Alertas. Na VPS, use o IP Tailscale do PC receptor.</small>
-    <label for="chave">Chave de acesso do receptor</label>
-    <input id="chave" type="password" autocomplete="off">
-    <small id="ajudaChave">Copie a chave da aplicação no PC. Não use uma chave de IA.</small>
-    <label class="check"><input id="repetir" type="checkbox" checked> Repetir o aviso a cada minuto enquanto a verificação estiver aberta</label>
-    <div class="actions"><button type="submit">Salvar e autorizar endereço</button><button id="testar" type="button">Enviar aviso de teste</button></div>
-  </form>
+    <section class="device" aria-labelledby="androidTitulo">
+      <h2 id="androidTitulo">Android</h2>
+      <label class="check"><input id="androidAtivado" type="checkbox"> Enviar avisos ao Android</label>
+      <label for="androidEndereco">Endereço do celular Android</label>
+      <input id="androidEndereco" type="url" placeholder="http://100.64.0.20:8765" autocomplete="off">
+      <small>Abra o aplicativo no celular, permita notificações e toque em Iniciar receptor. Use o IP Tailscale do celular.</small>
+      <label for="androidChave">Chave de acesso do Android</label>
+      <input id="androidChave" type="password" autocomplete="off">
+      <small>Copie a chave exibida no aplicativo Android. Ela é independente da chave do Windows.</small>
+      <button id="testarAndroid" type="button">Testar Android</button>
+      <p id="androidStatus" class="device-status" aria-live="polite"></p>
+      <p class="note">Conecte a VPS e o celular ao Tailscale. Para receber com a tela apagada, permita uso de bateria sem restrições para o aplicativo e o Tailscale. Som e vibração são controlados no celular.</p>
+    </section>
+    <small>Marque os dois dispositivos para receber simultaneamente. Desmarcar um dispositivo não apaga seu endereço nem sua chave.</small>
+    <label class="check"><input id="repetir" type="checkbox" checked> Repetir os avisos a cada minuto enquanto a verificação estiver aberta</label>
+    <div class="actions"><button id="salvar" type="submit">Salvar e autorizar endereços</button><button id="testar" type="button">Testar dispositivos ativados</button></div>
+  </fieldset></form>
   <output id="status" role="status">Carregando configuração…</output>
-  <p class="note" id="notaReceptor">A aplicação precisa estar aberta no dispositivo receptor. Os avisos funcionam também com a caçada pausada. Resolva a verificação manualmente pelo VNC.</p>
+  <p class="note">Cada receptor precisa estar ligado. Se um dispositivo estiver offline, o outro continua recebendo os avisos. Nenhuma imagem do CAPTCHA é enviada. Resolva a verificação manualmente pelo VNC.</p>
 </main></body></html>

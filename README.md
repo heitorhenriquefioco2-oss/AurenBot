@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.22, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.23, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -60,21 +60,27 @@ Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções s
 
 Para receber no Windows, execute o **AurenBot Alertas** no PC que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
 
-No painel da extensão, clique em **Notificações: Windows e Android**. Em **Receber notificações em**, escolha **Windows** ou **Android**. Ative o envio de avisos, informe o endereço do receptor e sua chave, salve, autorize o acesso a esse endereço e envie um teste. Se o jogo roda na VPS, use o IP **Tailscale do dispositivo receptor** (PC ou celular), e mantenha ambos conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador.
+No painel da extensão, abra **Notificações: Windows e Android**. Ative **Ativar notificações** e marque **Enviar avisos ao Windows**, **Enviar avisos ao Android** ou os dois. Cada dispositivo possui seus próprios campos de endereço e chave. Preencha os dados de ambos, clique em **Salvar e autorizar endereços** e permita acesso aos endereços escolhidos. Use **Testar Windows**, **Testar Android** ou **Testar dispositivos ativados** para verificar cada conexão.
 
-Detecta as janelas **A guarda pede um sinal** e **De quem é esta sombra?**, inclusive com a caçada pausada ou o painel oculto. O PC mostra uma notificação nativa e emite um som, se habilitado no receptor. Por padrão, repete a cada minuto enquanto a janela permanecer aberta; essa repetição pode ser desmarcada. Após falhas de conexão, tenta novamente em 30 segundos. O painel informa quando o receptor confirmou o aviso ou quando houve falha. A confirmação significa que o receptor aceitou o evento, não que o Windows exibiu o balão ou que o usuário ouviu o som.
+A partir da v3.3.23, os dois dispositivos recebem simultaneamente. O endereço e a chave de cada um ficam salvos localmente neste perfil do Chrome, inclusive quando seu envio é desmarcado ou quando as notificações são desativadas. Reabrir a página restaura os dois perfis; não é necessário copiar os dados novamente ao alternar o envio.
 
-A configuração dos avisos pode ser alterada sem pausar a caçada. Nenhuma imagem, resposta de CAPTCHA, chave de IA ou dado do personagem é enviado: somente um identificador aleatório e o tipo de verificação. A chave do receptor é enviada no cabeçalho de autenticação. Use na rede local ou por Tailscale; não exponha a porta diretamente à Internet.
+A configuração antiga de um único receptor é recuperada no perfil Windows ou Android conforme a escolha que estava salva. Se não havia uma escolha registrada, mantém os dados em Windows. O outro perfil fica vazio e desmarcado para você preencher. Nada é copiado entre as chaves dos dois dispositivos. Clique em Salvar para gravar o formato novo.
 
-O executável precisa permanecer em execução, com o PC ligado e sem suspensão. Fechar a aba de configuração do receptor não encerra a aplicação. Os prazos e a automação aguardam a resolução manual da verificação.
+Se o jogo roda na VPS, use o IP **Tailscale de cada receptor** e mantenha a VPS, o PC e o celular conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador. O executável do Windows e o APK Android existentes continuam compatíveis; não precisam ser reinstalados para usar o envio simultâneo.
 
-A escolha **Android** exibe as instruções de instalação/conexão e identifica os campos do celular. O menu **Windows** mantém as instruções do PC. As configurações anteriores de endereço, chave, ativação e repetição são preservadas. Ao trocar o dispositivo, confira o endereço e a chave; o envio usa um receptor por vez. Alterações precisam ser salvas antes de enviar um teste. Configurar notificações não pausa a caçada.
+Detecta as janelas **A guarda pede um sinal** e **De quem é esta sombra?**, inclusive com a caçada pausada ou o painel oculto. Cada receptor mostra uma notificação nativa e usa o som conforme suas configurações locais. Por padrão, repete a cada minuto enquanto a janela permanecer aberta; essa repetição pode ser desmarcada. Cada dispositivo tem seus próprios prazos de tentativa e confirmação. Após uma falha, tenta novamente aquele receptor em 30 segundos, preservando o identificador da tentativa para evitar duplicação caso a confirmação tenha se perdido. O dispositivo que já confirmou continua recebendo seus lembretes normalmente, mesmo se o outro estiver offline.
+
+O painel e os testes mostram o resultado por dispositivo. A confirmação significa que o receptor aceitou o evento, não que o sistema exibiu a notificação ou que o usuário ouviu o som. Fechar a verificação encerra os lembretes e novas tentativas nos dois destinos.
+
+A configuração dos avisos pode ser alterada sem pausar a caçada. Nenhuma imagem, resposta de CAPTCHA, chave de IA ou dado do personagem é enviado: somente um identificador aleatório e o tipo de verificação. A chave de cada receptor é enviada somente no cabeçalho de autenticação de sua própria conexão. Use na rede local ou por Tailscale; não exponha a porta diretamente à Internet.
+
+Os receptores precisam permanecer ligados. Fechar a aba de configuração do Windows não encerra sua aplicação. Os prazos e a automação aguardam a resolução manual da verificação. Alterações na página de configuração precisam ser salvas antes de enviar um teste.
 
 ## Receptor Android (APK)
 
 O aplicativo **AurenBot Alertas para Android 1.0.0** recebe os mesmos avisos, com notificação nativa, som e vibração opcionais. Requer Android 8 ou posterior e funciona com a extensão v3.3.20 ou posterior, sem alterar a automação.
 
-Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Notificações: Windows e Android** da extensão, selecionando **Android**. Salve, autorize o endereço e envie um teste. A extensão envia para um receptor por vez; usar o endereço do celular substitui o destino Windows.
+Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Notificações: Windows e Android** da extensão, marcando **Enviar avisos ao Android** e preenchendo os campos do celular. Salve, autorize o endereço e envie um teste. Marque também Windows para receber nos dois ao mesmo tempo.
 
 Para receber com a tela apagada, mantenha o serviço ligado e permita uso de bateria sem restrições para o aplicativo e o Tailscale. O receptor mantém a CPU acordada enquanto ligado, consumindo mais bateria; as políticas de rede e bateria do Android/fabricante ainda se aplicam. Não usa push externo. Após reiniciar o celular, abra o aplicativo e inicie novamente. Consulte [as instruções e o código do APK](android-alertas/README.md).
 
@@ -140,3 +146,20 @@ Não execute o script de console junto com a extensão, nem duas versões da ext
 
 O painel e as regras vêm da versão 3.3. Alterações futuras na interface do jogo podem exigir atualização dos seletores. A extensão mantém a pausa diante de elementos ambíguos ou falta de confirmação.
 
+
+## Testes de notificações
+
+Os testes do envio simultâneo e da migração usam Node.js 20 ou posterior, sem dependências externas:
+
+```bash
+node --test tests/notificacoes-background.cjs
+```
+
+Para os testes de interface e do observador, instale Playwright no seu ambiente de desenvolvimento e seu Chromium. É possível informar `PLAYWRIGHT_MODULE` com o caminho do módulo e `CHROMIUM_PATH` com o executável, ou usar a instalação padrão:
+
+```bash
+node tests/notificacoes-ui.cjs
+node tests/notificacoes-observador.cjs
+```
+
+A integração `tests/notificacoes-receptores.cjs` usa o receptor Go na porta 18765 e a fixture Java `ProtocolTest serve` na porta 18766. Informe `WINDOWS_TEST_CONFIG` com o caminho do arquivo de configuração de teste do Go. A fixture Java usa somente uma chave fixa de teste; não a configure em um celular real. Essa integração verifica protocolo e recebimento, sem validar som ou notificações nativas dos dispositivos.

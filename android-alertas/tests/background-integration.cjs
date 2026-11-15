@@ -4,6 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),asse
 (async()=>{
  let cfg={ativadas:true,endereco:'http://127.0.0.1:18766',chave:'a'.repeat(64)},allowed=true,listener,requests=[];
  const sandbox={console,URL,AbortController,setTimeout,clearTimeout,TypeError,crypto,fetch:async(url,options)=>{requests.push(JSON.parse(options.body));return fetch(url,options)},chrome:{action:{onClicked:{addListener(){}}},runtime:{id:'test-extension',onMessage:{addListener(fn){listener=fn}},openOptionsPage:async()=>{}},permissions:{contains:async()=>allowed},storage:{local:{get:async()=>({aurenNotificacoesV1:cfg})}}}};
+ sandbox.importScripts=(...names)=>names.forEach(name=>vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../..',name),'utf8'),sandbox));
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../background.js'),'utf8'),sandbox);
  const send=(msg,sender={id:'test-extension'})=>new Promise(resolve=>{if(listener(msg,sender,resolve)!==true)resolve(undefined)});
  const test={origem:'auren-avisos-windows',comando:'teste'};

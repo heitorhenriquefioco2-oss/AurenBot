@@ -9,7 +9,7 @@
   let ativo = true, agendado = false, verificando = false, total = 0;
   let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
   let seloPronto = false;
-  let tipoVerificacao = '', configAvisos = {ativadas:false, repetir:true}, avisoAtual = null;
+  let tipoVerificacao = '', configAvisos = {ativadas:false, repetir:true, dispositivos:[]}, avisoAtual = null;
   let estadoAvisos = 'Notificações desativadas.', ouvirAvisos = null;
   let revisaoAvisos = 0;
   function informarAvisos(texto) {
@@ -17,7 +17,8 @@
     ouvirAvisos?.(texto);
   }
   function carregarAvisos(valor) {
-    configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false};
+    const dispositivos = valor?.versao === 2 ? ['windows','android'].filter(id=>valor.dispositivos?.[id]?.ativado === true) : [valor?.destino === 'android' ? 'android' : 'windows'];
+    configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false, dispositivos};
     avisoAtual = null;
     informarAvisos(configAvisos.ativadas ? 'Notificações ativadas. Aguardando uma verificação.' : 'Notificações desativadas.');
   }
@@ -28,23 +29,29 @@
     });
   } catch { carregarAvisos(null); }
   function avisarNoWindows(selo) {
-    if (!configAvisos.ativadas || !ativo) return;
+    if (!configAvisos.ativadas || !configAvisos.dispositivos.length || !ativo) return;
     if (!avisoAtual || avisoAtual.painel !== selo.painel || avisoAtual.tipo !== selo.tipo) {
-      avisoAtual = {painel:selo.painel, tipo:selo.tipo, id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null};
+      avisoAtual = {painel:selo.painel, tipo:selo.tipo, dispositivos:{}};
     }
-    const aviso = avisoAtual, agora = Date.now();
-    if (aviso.enviando || (aviso.enviado !== null && (!configAvisos.repetir || agora - aviso.enviado < 60000)) ||
-        (aviso.tentativa !== null && agora - aviso.tentativa < 30000)) return;
-    if (aviso.enviado !== null) { aviso.id = crypto.randomUUID(); aviso.enviado = null; }
-    aviso.enviando = true; aviso.tentativa = agora;
-    informarAvisos('Enviando aviso ao PC receptor…');
-    Promise.resolve().then(()=>chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'captcha', eventoId:aviso.id, tipo:aviso.tipo}))
-      .then(result=>{
-        if (!result?.ok) throw Error(result?.erro || 'O receptor não confirmou o aviso.');
-        aviso.enviado = Date.now();
-        if (avisoAtual === aviso) informarAvisos('Aviso confirmado pelo receptor.');
-      }).catch(error=>{if (avisoAtual === aviso) informarAvisos(`Falha no aviso: ${error.message}`);})
-      .finally(()=>{aviso.enviando = false;});
+    const episodio = avisoAtual;
+    const nome = id=>id === 'android' ? 'Android' : 'Windows';
+    const informar = ()=>{
+      if (avisoAtual === episodio) informarAvisos(configAvisos.dispositivos.map(id=>`${nome(id)}: ${episodio.dispositivos[id]?.status || 'aguardando envio'}`).join(' · '));
+    };
+    for (const destino of configAvisos.dispositivos) {
+      const aviso = episodio.dispositivos[destino] ||= {id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null, status:'aguardando envio'};
+      const agora = Date.now();
+      if (aviso.enviando || (aviso.enviado !== null && (!configAvisos.repetir || agora - aviso.enviado < 60000)) ||
+          (aviso.tentativa !== null && agora - aviso.tentativa < 30000)) continue;
+      if (aviso.enviado !== null) { aviso.id = crypto.randomUUID(); aviso.enviado = null; }
+      aviso.enviando = true; aviso.tentativa = agora; aviso.status = 'enviando aviso…'; informar();
+      Promise.resolve().then(()=>chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'captcha', eventoId:aviso.id, tipo:episodio.tipo, destino}))
+        .then(result=>{
+          if (!result?.ok) throw Error(result?.erro || 'O receptor não confirmou o aviso.');
+          aviso.enviado = Date.now(); aviso.status = 'aviso confirmado pelo receptor'; informar();
+        }).catch(error=>{aviso.status = `falha no aviso: ${error.message}`; informar();})
+        .finally(()=>{aviso.enviando = false;});
+    }
   }
 
   function localizarVerificacaoHumana() {

@@ -7,11 +7,11 @@ APK receptor para **Android 8.0 ou posterior**. Funciona com a extensão AurenBo
 1. Copie o APK fornecido para o celular, abra-o e autorize sua instalação quando o Android solicitar.
 2. Abra **AurenBot Alertas**, toque em **Iniciar receptor** e permita as notificações. Use **Testar notificação neste celular** para conferir som, vibração e volume.
 3. Conecte a VPS e o celular à mesma rede Tailscale. Atualize os endereços no aplicativo e escolha o endereço do **celular** `http://100.x.x.x:8765`. Em uma mesma rede Wi-Fi, também é possível usar o IP local do celular.
-4. Toque em **Copiar endereço do celular** e **Copiar chave de acesso**. Na extensão v3.3.22 ou posterior, abra **Notificações: Windows e Android** e selecione **Android**. Nas versões v3.3.20/v3.3.21, use o botão antigo **Configurar avisos no Windows**, que também aceita o receptor Android.
+4. Toque em **Copiar endereço do celular** e **Copiar chave de acesso**. Na extensão v3.3.23 ou posterior, abra **Notificações: Windows e Android**, marque **Enviar avisos ao Android** e preencha os campos do celular. Na v3.3.22, selecione **Android** no menu de destino. Nas versões v3.3.20/v3.3.21, use o botão antigo **Configurar avisos no Windows**, que também aceita o receptor Android.
 5. Ative os avisos, substitua endereço e chave pelos do Android, clique em **Salvar e autorizar endereço** e envie o teste da extensão. A confirmação deve aparecer na extensão e no celular deve chegar uma notificação.
 6. Se quiser lembretes, marque a opção de repetir a cada minuto na extensão. Eles param quando a janela da verificação desaparecer.
 
-A configuração atual da extensão aponta para **um receptor por vez**. Ao trocar o endereço do Windows pelo celular, os próximos avisos irão para o celular. Copiar a chave entre dispositivos pode ser feito pelos meios habituais de sua rede; não a publique nem compartilhe com terceiros.
+A extensão v3.3.23 ou posterior permite **Windows e Android simultaneamente**, mantendo endereço e chave separados e salvos. Marque os dois para receber em ambos; desmarcar um dispositivo não apaga seus dados. Nas versões anteriores, há somente um receptor por vez. Copiar a chave entre dispositivos pode ser feito pelos meios habituais de sua rede; não a publique nem compartilhe com terceiros.
 
 A notificação pede sua interação no jogo; conclua a verificação manualmente pelo VNC. O aplicativo não resolve CAPTCHAs nem recebe imagens deles.
 
