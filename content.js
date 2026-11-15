@@ -327,8 +327,17 @@
 
   // A navegação inicial termina antes de criar/exibir a interface do bot.
   let erroNavegacaoInicial = '';
+  let descansoAoCarregar = false;
   try {
-    await navegarCacada(() => true, msg => console.info('[Auren início]', msg), 15000);
+    const salvo = JSON.parse(sessionStorage.getItem('aurenRetomadaAtualizacaoV1') || 'null');
+    const idade = salvo ? Date.now() - salvo.criadoEm : -1;
+    const maximo = salvo?.config?.duracaoPausaMax;
+    descansoAoCarregar = salvo?.versao === 1 && idade >= 0 && idade <= 120000 && salvo.config?.pausasAleatorias === true && !salvo.pendente &&
+      Number.isInteger(maximo) && maximo >= 1 && maximo <= 1440 && Number.isFinite(salvo.pausas?.retomarEm) &&
+      salvo.pausas.retomarEm > Date.now() && salvo.pausas.retomarEm <= Date.now() + maximo * 60000;
+  } catch { /* Sem uma retomada válida, mantém a abertura normal da Caçada. */ }
+  try {
+    if (!descansoAoCarregar) await navegarCacada(() => true, msg => console.info('[Auren início]', msg), 15000);
   } catch (error) { erroNavegacaoInicial = error.message; }
   try {
     const salvo = await chrome.storage.local.get('aurenPreferenciasV33');
@@ -343,9 +352,9 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.24</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.25</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
-    <nav role="tablist" aria-label="Opções de caçada e expedição"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button></nav>
+    <nav role="tablist" aria-label="Opções de caçada, expedição e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
     <label>Criatura que você quer caçar<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Digite o nome igual ao do jogo e deixe a região da criatura aberta.</small>
@@ -363,6 +372,16 @@
       <label>Tempo de cada nova expedição<select id="duracaoExpedicao" disabled><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option></select></label>
       <small>Antes de ativar, escolha o território, o grau e a estratégia na tela Expedição do jogo. O bot inicia a viagem e volta à Caçada. Se já houver uma viagem em andamento, espera ela terminar. O tempo escolhido vale para a próxima.</small>
       <output id="statusExpedicao" aria-live="polite">Ative se quiser manter uma expedição enquanto caça.</output>
+    </div>
+    <div id="abaPausas" role="tabpanel" aria-labelledby="tabPausas" hidden>
+      <label><input id="pausasAleatorias" type="checkbox"> Fazer pausas automáticas</label>
+      <p>Escolha duas faixas. O bot sorteia quando vai pausar e quanto tempo vai descansar.</p>
+      <div class="grid"><label>Pausar depois de, no mínimo (min)<input id="intervaloPausaMin" type="text" inputmode="numeric" value="20" disabled></label><label>E, no máximo (min)<input id="intervaloPausaMax" type="text" inputmode="numeric" value="40" disabled></label></div>
+      <div class="grid"><label>Descansar por, no mínimo (min)<input id="duracaoPausaMin" type="text" inputmode="numeric" value="2" disabled></label><label>E, no máximo (min)<input id="duracaoPausaMax" type="text" inputmode="numeric" value="5" disabled></label></div>
+      <small>Exemplo: pausar a cada 20 a 40 minutos e descansar por 2 a 5 minutos. Use minutos inteiros de 1 a 1440. Para um tempo fixo, coloque o mesmo número nos dois campos.</small>
+      <p>O bot termina a ação em andamento antes de pausar. Durante o descanso, não luta, não usa poções e não inicia expedições. Os avisos ativados continuam funcionando, e uma expedição já iniciada continua no jogo.</p>
+      <small>Ao terminar a pausa, volta à Caçada e confere o jogo antes de continuar. Pausar, ocultar o painel ou mudar uma opção cancela as pausas marcadas. Clique em Iniciar para sortear de novo. O Chrome pode atrasar os horários se a aba ficar lenta ou suspensa.</small>
+      <output id="statusPausas" aria-live="polite">Pausas desligadas.</output>
     </div>
     <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar mesmo sem olhar a aba do jogo</label>
     <small id="ajudaContinuarOculta">Use para deixar o bot caçando enquanto você usa outra aba ou fecha a conexão remota. Mantenha o jogo e o Chrome abertos. O Chrome pode deixar o bot mais lento quando a aba não está visível.</small>
@@ -382,19 +401,20 @@
     } catch(error) { ui('statusAvisos').textContent=error.message; }
   };
   function abrirAba(id) {
-    for (const nome of ['Cacada', 'Expedicao']) {
+    for (const nome of ['Cacada', 'Expedicao', 'Pausas']) {
       const ativa = nome === id;
       ui('tab' + nome).setAttribute('aria-selected', String(ativa));
       ui('tab' + nome).tabIndex = ativa ? 0 : -1;
       ui('aba' + nome).hidden = !ativa;
     }
   }
-  for (const nome of ['Cacada', 'Expedicao']) {
+  const abas = ['Cacada', 'Expedicao', 'Pausas'];
+  for (const nome of abas) {
     ui('tab' + nome).onclick = () => abrirAba(nome);
     ui('tab' + nome).onkeydown = event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
-      const destino = event.key === 'Home' ? 'Cacada' : event.key === 'End' ? 'Expedicao' : nome === 'Cacada' ? 'Expedicao' : 'Cacada';
+      const destino = event.key === 'Home' ? abas[0] : event.key === 'End' ? abas[abas.length - 1] : abas[(abas.indexOf(nome) + (event.key === 'ArrowRight' ? 1 : abas.length - 1)) % abas.length];
       abrirAba(destino); ui('tab' + destino).focus();
     };
   }
@@ -438,6 +458,7 @@
   });
   let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
   let timerReinicio = null, reinicioArmado = false;
+  let planoPausas = null;
   let ataquePronto = null, motivoRecuperacao = '';
   let expedicaoPendente = null, proximaVerificacaoExpedicao = 0;
   const observarProntidao = new MutationObserver(registros => {
@@ -454,7 +475,7 @@
   });
   const linhas = [];
   function status(msg) {
-    ui('status').textContent = `${timer ? 'Ativo' : 'Pausado'} • ${msg}`;
+    ui('status').textContent = `${timer ? (planoPausas?.retomarEm ? 'Em pausa' : 'Ativo') : 'Pausado'} • ${msg}`;
     if (linhas[0] && linhas[0].endsWith(msg)) return;
     linhas.unshift(`${new Date().toLocaleTimeString()} ${msg}`);
     linhas.length = Math.min(linhas.length, 35);
@@ -466,7 +487,63 @@
     if (!c.criatura) throw Error('Digite o nome da criatura igual ao do jogo.');
     if (c.atacar < 30) throw Error('O vigor mínimo para caçar deve ser de pelo menos 30%.');
     if (c.limiteAlivio < c.limite) throw Error('O limite da poção comum deve ser igual ou maior que o limite da maior.');
+    c.pausasAleatorias = ui('pausasAleatorias').checked;
+    for (const [id, nome] of [['intervaloPausaMin','Tempo mínimo antes de pausar'], ['intervaloPausaMax','Tempo máximo antes de pausar'], ['duracaoPausaMin','Descanso mínimo'], ['duracaoPausaMax','Descanso máximo']]) {
+      c[id] = null;
+      if (!c.pausasAleatorias) continue;
+      const valor = ui(id).value.trim();
+      if (!/^\d+$/.test(valor) || Number(valor) < 1 || Number(valor) > 1440) throw Error(`${nome}: digite minutos inteiros de 1 a 1440.`);
+      c[id] = Number(valor);
+    }
+    if (c.pausasAleatorias && c.intervaloPausaMin > c.intervaloPausaMax) throw Error('O tempo mínimo antes de pausar não pode ser maior que o máximo.');
+    if (c.pausasAleatorias && c.duracaoPausaMin > c.duracaoPausaMax) throw Error('O descanso mínimo não pode ser maior que o máximo.');
     return c;
+  }
+  function sortearMinutos(minimo, maximo) {
+    return minimo + Math.floor(Math.random() * (maximo - minimo + 1));
+  }
+  function atualizarStatusPausas() {
+    let texto;
+    if (!ui('pausasAleatorias').checked) texto = 'Pausas desligadas.';
+    else if (!planoPausas) texto = 'Quando a caçada começar, vou sortear a próxima pausa.';
+    else if (planoPausas.retomarEm) {
+      const faltam = Math.ceil((planoPausas.retomarEm - Date.now()) / 60000);
+      texto = faltam > 0 ? `Descansando. Volto em até ${faltam} min.` : 'O descanso terminou. Esperando o jogo liberar a volta.';
+    } else {
+      const faltam = Math.ceil((planoPausas.proximaEm - Date.now()) / 60000);
+      texto = faltam > 0 ? `Próxima pausa em até ${faltam} min. Vou descansar por ${planoPausas.duracaoMinutos} min.` : 'A pausa está pronta. Vou terminar a ação do jogo antes de descansar.';
+    }
+    // O texto muda só quando o minuto ou a etapa muda.
+    if (ui('statusPausas').textContent !== texto) ui('statusPausas').textContent = texto;
+  }
+  function restaurarPlanoPausas(salvo) {
+    if (!config.pausasAleatorias || !salvo || typeof salvo !== 'object') return null;
+    const {intervaloMinutos, duracaoMinutos, proximaEm, retomarEm} = salvo;
+    if (!Number.isInteger(intervaloMinutos) || intervaloMinutos < config.intervaloPausaMin || intervaloMinutos > config.intervaloPausaMax ||
+        !Number.isInteger(duracaoMinutos) || duracaoMinutos < config.duracaoPausaMin || duracaoMinutos > config.duracaoPausaMax ||
+        !Number.isFinite(proximaEm) || proximaEm < 0 || proximaEm > Date.now() + config.intervaloPausaMax * 60000 ||
+        (retomarEm !== null && (!Number.isFinite(retomarEm) || retomarEm <= Date.now() || retomarEm < proximaEm || retomarEm > Date.now() + duracaoMinutos * 60000))) return null;
+    return {intervaloMinutos, duracaoMinutos, proximaEm, retomarEm};
+  }
+  function ativarCiclo(planoSalvo = null) {
+    planoPausas = restaurarPlanoPausas(planoSalvo);
+    if (config.pausasAleatorias && !planoPausas) {
+      const intervaloMinutos = sortearMinutos(config.intervaloPausaMin, config.intervaloPausaMax);
+      const duracaoMinutos = sortearMinutos(config.duracaoPausaMin, config.duracaoPausaMax);
+      planoPausas = {intervaloMinutos, duracaoMinutos, proximaEm:Date.now() + intervaloMinutos * 60000, retomarEm:null};
+    }
+    proximaVerificacaoExpedicao = agoraAtivo() + 30000;
+    reinicioArmado = config.reiniciarAutomaticamente;
+    timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true;
+    atualizarStatusPausas();
+    status(planoPausas?.retomarEm ? 'Continuando seu descanso. Vou voltar à caçada sozinho.' : 'Caçada iniciada. Vou lutar e recuperar o vigor como você escolheu.');
+  }
+  function iniciarPausaSorteada() {
+    if (!planoPausas || planoPausas.retomarEm || Date.now() < planoPausas.proximaEm) return false;
+    planoPausas.retomarEm = Date.now() + planoPausas.duracaoMinutos * 60000;
+    atualizarStatusPausas();
+    status(`Pausa de ${planoPausas.duracaoMinutos} min. Vou continuar sozinho depois do descanso.`);
+    return true;
   }
   function pausar(msg = 'Caçada pausada. Clique em Iniciar para continuar.', automatica = false) {
     ataquePronto = null;
@@ -476,6 +553,7 @@
     try { sessionStorage.removeItem('aurenRetomadaAtualizacaoV1'); } catch {}
     preparacao = null;
     clearInterval(timer); timer = null; ui('iniciar').disabled = false;
+    planoPausas = null; atualizarStatusPausas();
     if (retomar) agendarReinicio(msg);
     else status(msg);
     // Preserva ação pendente: pausar/retomar não autoriza repetir um clique sem confirmação.
@@ -554,7 +632,7 @@
   }
   function diagnostico() {
     const c = lerConfig(), hp = lerVigor(), criatura = localizarCriatura(c.criatura);
-    const d = { vigor: hp, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana, pendente: pendente && pendente.tipo, segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000) : null, configuracao: c };
+    const d = { vigor: hp, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana, pendente: pendente && pendente.tipo, segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000) : null, pausas: planoPausas ? {...planoPausas} : null, configuracao: c };
     console.info('Diagnóstico Auren (nenhum clique):', d);
     const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'ainda não pode ser usado') : 'não encontrado';
     status([
@@ -566,13 +644,23 @@
       `Poção de vigor: ${encontrado(botaoPocao('alivio'))}.`,
       `Poção de vigor maior: ${encontrado(botaoPocao('restauradora'))}.`,
       `Expedições: ${c.manterExpedicao ? `ligada, tempo das próximas viagens: ${c.duracaoExpedicao} minutos` : 'desativada'}.`,
+      `Pausas: ${c.pausasAleatorias ? 'ligadas' : 'desligadas'}.`,
       pendente ? descreverPendencia() : 'Esta consulta não iniciou lutas nem usou poções.'
     ].join('\n')); return d;
   }
   function ciclo() {
     if (!timer || preparacao || removido) return;
     try {
+      atualizarStatusPausas();
+      if (planoPausas?.retomarEm && Date.now() < planoPausas.retomarEm) return;
       if (avisosBloqueando()) return;
+      if (planoPausas?.retomarEm) {
+        planoPausas = null;
+        clearInterval(timer); timer = null;
+        ui('statusPausas').textContent = 'Descanso terminado. Conferindo o jogo antes de continuar…';
+        void iniciar(true);
+        return;
+      }
       const hp = lerVigor(), r = resultado(), agora = agoraAtivo();
       if (r && (!pendente || pendente.tipo === 'ataque')) {
         const btn = fecharResultado(r);
@@ -592,6 +680,11 @@
         if (pendente && agora - pendente.inicio > 45000) pausar('O jogo demorou a responder. Pausei para não repetir uma ação. Confira o jogo antes de continuar.', true);
         return;
       }
+      if (selecionando) {
+        const criatura = localizarCriatura(config.criatura);
+        if (criatura && selecionada(criatura)) selecionando = null;
+      }
+      if (!selecionando && iniciarPausaSorteada()) return;
       // Uma renderização temporária não deve desligar o ciclo. Só decide com uma leitura atual válida.
       if (hp === null) {
         status('O vigor ainda não apareceu. Vou esperar e continuar quando conseguir ver o valor. Por enquanto, não luto nem uso poções.');
@@ -642,7 +735,7 @@
       if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}${substituir ? ' no lugar da maior' : ''}. Esperando o vigor voltar…`); }
     } catch (e) { pausar(`Não consegui continuar: ${e.message}`, true); }
   }
-  async function iniciar(automatico = false) {
+  async function iniciar(automatico = false, planoSalvo = null) {
     if (timer || preparacao || removido) return;
     clearTimeout(timerReinicio); timerReinicio = null;
     if (!automatico) reinicioArmado = false;
@@ -651,6 +744,12 @@
       preparacao = token;
       if (pendente && agoraAtivo() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo ainda não respondeu à última ação. Confira o jogo e recarregue a página antes de tentar de novo.');
       ui('iniciar').disabled = true;
+      // A atualização do jogo pode acontecer durante o descanso. Não navega nem inicia ações nessa retomada.
+      if (planoSalvo?.retomarEm && !pendente) {
+        config = lerConfig();
+        const descansoSalvo = restaurarPlanoPausas(planoSalvo);
+        if (descansoSalvo) { preparacao = null; ativarCiclo(descansoSalvo); return; }
+      }
       status('Preparando sua caçada…');
       if (!(await navegarCacada(() => preparacao === token && !removido))) return;
       if (preparacao !== token) return;
@@ -663,9 +762,7 @@
       if (!(await prepararModalidade(token))) return;
       if (preparacao !== token) return;
       preparacao = null;
-      proximaVerificacaoExpedicao = agoraAtivo() + 30000;
-      reinicioArmado = config.reiniciarAutomaticamente;
-      timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true; status('Caçada iniciada. Vou lutar e recuperar o vigor como você escolheu.');
+      ativarCiclo(planoSalvo);
     } catch (e) {
       if (preparacao === token) pausar(e.message, automatico);
       else if (!timer && !preparacao) status(e.message);
@@ -677,7 +774,8 @@
     try {
       sessionStorage.setItem('aurenRetomadaAtualizacaoV1', JSON.stringify({
         versao: 1, criadoEm: Date.now(), config,
-        pendente: pendente ? { ...pendente, inicio: Date.now() - Math.max(0, agoraAtivo() - pendente.inicio) } : null, expedicaoPendente
+        pendente: pendente ? { ...pendente, inicio: Date.now() - Math.max(0, agoraAtivo() - pendente.inicio) } : null, expedicaoPendente,
+        pausas: planoPausas ? {...planoPausas} : null
       }));
       preparacao = null;
       clearInterval(timer); timer = null;
@@ -690,14 +788,18 @@
   window.aurenCacada = api;
   ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'substituirMaior', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao'];
+  const campos = ['criatura', 'modo', 'atacar', 'limite', 'limiteAlivio', 'substituirMaior', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao', 'pausasAleatorias', 'intervaloPausaMin', 'intervaloPausaMax', 'duracaoPausaMin', 'duracaoPausaMax'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }
     else if (typeof valor === 'string' && (id !== 'modo' || ['pocao', 'natural'].includes(valor)) &&
       (id !== 'duracaoExpedicao' || ['15', '60', '240'].includes(valor))) campo.value = valor;
   }
-  ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
+  function atualizarCampos() {
+    ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
+    for (const id of ['intervaloPausaMin','intervaloPausaMax','duracaoPausaMin','duracaoPausaMax']) ui(id).disabled = !ui('pausasAleatorias').checked;
+  }
+  atualizarCampos(); atualizarStatusPausas();
   if (ui('manterExpedicao').checked) statusExpedicao('Expedição pronta. Clique em Iniciar para caçar e fazer expedições.');
   // Serializa as gravações para uma edição mais antiga não sobrescrever a última.
   let gravacao = Promise.resolve();
@@ -708,7 +810,7 @@
     });
   }
   root.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => {
-    ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
+    atualizarCampos();
     if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição pronta. Clique em Iniciar para começar.' : 'Não vou iniciar novas expedições. A viagem atual continua no jogo.');
     selecionando = null; pausar('Opções alteradas. Clique em Iniciar para continuar com elas.'); salvar();
   }));
@@ -730,7 +832,7 @@
   if (erroNavegacaoInicial) status(erroNavegacaoInicial);
   document.addEventListener('visibilitychange', function oculto() {
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
-    if (document.hidden && timer && !config.continuarOculta) pausar('Você saiu da aba do jogo. Pausei a caçada. Clique em Iniciar para continuar.');
+    if (document.hidden && (timer || preparacao) && !ui('continuarOculta').checked) pausar('Você saiu da aba do jogo. Pausei a caçada. Clique em Iniciar para continuar.');
   });
   console.info('Auren instalado. Caçada pausada até clicar em Iniciar. API: window.aurenCacada.');
   // Só a atualização acionada pelo bot permite retomar sem clicar em Iniciar.
@@ -745,12 +847,12 @@
         if (ui(id).type === 'checkbox' && typeof valor === 'boolean') ui(id).checked = valor;
         else if (typeof valor === 'string' || typeof valor === 'number') ui(id).value = String(valor);
       }
-      ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
+      atualizarCampos();
       if (['iniciar', 'retomar'].includes(retomada.expedicaoPendente?.acao)) expedicaoPendente = retomada.expedicaoPendente;
       const anterior = retomada.pendente;
       if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = { ...anterior, inicio: agoraAtivo() - Math.max(0, Date.now() - anterior.inicio) };
       status('Jogo atualizado. Continuando a caçada com suas escolhas…');
-      iniciar();
+      iniciar(false, retomada.pausas);
     }
   } catch { status('Não consegui continuar a caçada anterior. Confira as opções e clique em Iniciar.'); }
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));

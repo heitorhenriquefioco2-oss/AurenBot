@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Auren — Caçada v3.3.24",
-  "version": "3.3.24",
+  "name": "Auren — Caçada v3.3.25",
+  "version": "3.3.25",
   "description": "Caça, recupera o vigor e avisa quando o jogo precisa da sua resposta.",
   "permissions": [
     "storage"

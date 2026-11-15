@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.24, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.25, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -55,6 +55,25 @@ Marque **Tentar continuar sozinho após um erro** e clique em **Iniciar** para a
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
 **Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar mesmo sem olhar a aba do jogo**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+
+## Pausas automáticas
+
+Na aba **Pausas**, marque **Fazer pausas automáticas**. Escolha duas faixas em minutos:
+
+- **Tempo antes da pausa**: o mínimo e o máximo de tempo que o bot deve ficar ligado antes de descansar. O padrão é de 20 a 40 minutos.
+- **Tempo de descanso**: o mínimo e o máximo que cada pausa pode durar. O padrão é de 2 a 5 minutos.
+
+Use números inteiros de 1 a 1440 minutos, sempre com o mínimo igual ou menor que o máximo. O sorteio inclui os valores mínimo e máximo. Para um tempo fixo, coloque o mesmo número nos campos mínimo e máximo.
+
+Clique em **Iniciar** para aplicar. A opção vem desligada, e os campos ficam salvos neste perfil do Chrome. O bot sorteia os dois tempos quando a caçada começa. Ao terminar o descanso, confere o jogo e sorteia novamente para a próxima pausa. A aba mostra quanto falta e a duração sorteada; durante o descanso, o painel informa **Em pausa**.
+
+A pausa só começa entre as ações. O bot espera o ataque, a poção ou o fechamento do resultado terminar. As mesmas regras de espera e erro continuam valendo: uma ação sem confirmação não é abandonada para entrar em descanso. Por isso, a pausa pode começar depois do horário previsto.
+
+Durante o descanso, não luta, não usa poções e não inicia ou retoma expedições. Uma expedição que já partiu continua no jogo; se terminar, a próxima aguarda o fim do descanso. Os avisos que você ativou e o fechamento de avisos do jogo continuam funcionando. Se uma verificação estiver aberta ao terminar o descanso, o bot espera sua resposta antes de voltar.
+
+**Pausar**, **Ocultar painel**, **Pausar e conferir** ou mudar uma opção cancela os horários sorteados e impede a volta sozinha. Clique em **Iniciar** para sortear de novo. A opção **Continuar mesmo sem olhar a aba do jogo** também continua sendo respeitada, inclusive ao preparar a volta do descanso.
+
+Uma recarga comum mantém o bot parado. Na atualização do jogo acionada pelo bot, ele guarda o horário da pausa e, se estiver descansando, mantém o tempo restante sem iniciar ações ou navegar antes da hora. Essa retomada usa a mesma janela de dois minutos descrita na atualização automática. O relógio do computador e a disponibilidade do Chrome determinam os horários; uma aba lenta ou suspensa pode atrasá-los.
 
 ## Notificações no Windows e Android
 
@@ -163,3 +182,14 @@ node tests/notificacoes-observador.cjs
 ```
 
 A integração `tests/notificacoes-receptores.cjs` usa o receptor Go na porta 18765 e a fixture Java `ProtocolTest serve` na porta 18766. Informe `WINDOWS_TEST_CONFIG` com o caminho do arquivo de configuração de teste do Go. A fixture Java usa somente uma chave fixa de teste; não a configure em um celular real. Essa integração verifica protocolo e recebimento, sem validar som ou notificações nativas dos dispositivos.
+
+## Testes das pausas
+
+Os testes usam Playwright com o relógio acelerado e páginas de jogo simuladas, sem agir em uma conta real. Use a instalação e as variáveis de ambiente descritas nos testes de notificações:
+
+```bash
+node tests/pausas.cjs
+node tests/pausas-expedicao.cjs
+```
+
+Para executar um cenário específico do primeiro arquivo, informe `TEST_FILTER` com parte do nome do teste.
