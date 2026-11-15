@@ -16,5 +16,5 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),asse
   assert.equal((await response.json()).duplicado,true);
  }
  console.log('PASS: ambos reconhecem o evento recebido e deduplicam reenvio');
- cfg.dispositivos.android.chave='b'.repeat(64);const partial=await send();assert.equal(partial.ok,false);assert.equal(partial.resultados.find(r=>r.destino==='windows').ok,true);assert.match(partial.resultados.find(r=>r.destino==='android').erro,/chave foi recusada/);console.log('PASS: chave Android incorreta não cancela confirmação Windows');
+ cfg.dispositivos.android.chave='b'.repeat(64);const partial=await send();assert.equal(partial.ok,false);assert.equal(partial.resultados.find(r=>r.destino==='windows').ok,true);assert.match(partial.resultados.find(r=>r.destino==='android').erro,/Código de acesso incorreto/);console.log('PASS: chave Android incorreta não cancela confirmação Windows');
 })().catch(e=>{console.error(e);process.exitCode=1});

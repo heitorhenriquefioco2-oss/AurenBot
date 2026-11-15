@@ -10,7 +10,7 @@
   let inicioVerificacao = null, tempoVerificacao = 0, verificacaoHumana = false;
   let seloPronto = false;
   let tipoVerificacao = '', configAvisos = {ativadas:false, repetir:true, dispositivos:[]}, avisoAtual = null;
-  let estadoAvisos = 'Notificações desativadas.', ouvirAvisos = null;
+  let estadoAvisos = 'Avisos desligados.', ouvirAvisos = null;
   let revisaoAvisos = 0;
   function informarAvisos(texto) {
     estadoAvisos = texto;
@@ -20,7 +20,7 @@
     const dispositivos = valor?.versao === 2 ? ['windows','android'].filter(id=>valor.dispositivos?.[id]?.ativado === true) : [valor?.destino === 'android' ? 'android' : 'windows'];
     configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false, dispositivos};
     avisoAtual = null;
-    informarAvisos(configAvisos.ativadas ? 'Notificações ativadas. Aguardando uma verificação.' : 'Notificações desativadas.');
+    informarAvisos(configAvisos.ativadas ? 'Avisos ligados. Vou avisar quando o jogo pedir sua resposta.' : 'Avisos desligados.');
   }
   try {
     globalThis.chrome?.storage?.local?.get('aurenNotificacoesV1').then(saved=>{if (!revisaoAvisos) carregarAvisos(saved.aurenNotificacoesV1);},()=>{if (!revisaoAvisos) carregarAvisos(null);});
@@ -36,10 +36,10 @@
     const episodio = avisoAtual;
     const nome = id=>id === 'android' ? 'Android' : 'Windows';
     const informar = ()=>{
-      if (avisoAtual === episodio) informarAvisos(configAvisos.dispositivos.map(id=>`${nome(id)}: ${episodio.dispositivos[id]?.status || 'aguardando envio'}`).join(' · '));
+      if (avisoAtual === episodio) informarAvisos(configAvisos.dispositivos.map(id=>`${nome(id)}: ${episodio.dispositivos[id]?.status || 'esperando para enviar'}`).join(' · '));
     };
     for (const destino of configAvisos.dispositivos) {
-      const aviso = episodio.dispositivos[destino] ||= {id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null, status:'aguardando envio'};
+      const aviso = episodio.dispositivos[destino] ||= {id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null, status:'esperando para enviar'};
       const agora = Date.now();
       if (aviso.enviando || (aviso.enviado !== null && (!configAvisos.repetir || agora - aviso.enviado < 60000)) ||
           (aviso.tentativa !== null && agora - aviso.tentativa < 30000)) continue;
@@ -47,9 +47,9 @@
       aviso.enviando = true; aviso.tentativa = agora; aviso.status = 'enviando aviso…'; informar();
       Promise.resolve().then(()=>chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'captcha', eventoId:aviso.id, tipo:episodio.tipo, destino}))
         .then(result=>{
-          if (!result?.ok) throw Error(result?.erro || 'O receptor não confirmou o aviso.');
-          aviso.enviado = Date.now(); aviso.status = 'aviso confirmado pelo receptor'; informar();
-        }).catch(error=>{aviso.status = `falha no aviso: ${error.message}`; informar();})
+          if (!result?.ok) throw Error(result?.erro || 'O app ainda não confirmou o aviso.');
+          aviso.enviado = Date.now(); aviso.status = 'o app recebeu o aviso'; informar();
+        }).catch(error=>{aviso.status = `não consegui enviar: ${error.message}`; informar();})
         .finally(()=>{aviso.enviando = false;});
     }
   }
@@ -83,7 +83,7 @@
     verificacaoHumana = presente;
     if (!presente) {
       seloPronto = false; tipoVerificacao = '';
-      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação encerrada. Aguardando novos avisos.' : 'Notificações desativadas.'); }
+      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação fechada. Vou avisar se aparecer outra.' : 'Avisos desligados.'); }
     }
   }
 

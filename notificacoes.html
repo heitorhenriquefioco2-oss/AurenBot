@@ -2,43 +2,43 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AurenBot — notificações</title>
+  <title>AurenBot — seus avisos</title>
   <link rel="stylesheet" href="notificacoes.css"><script src="notificacoes-config.js" defer></script><script src="notificacoes.js" defer></script>
 </head>
 <body><main>
-  <p class="eyebrow">AURENBOT</p><h1>Notificações</h1>
-  <p>Receba os avisos no Windows e no Android ao mesmo tempo. O endereço e a chave de cada dispositivo ficam salvos separadamente neste perfil do Chrome.</p>
+  <p class="eyebrow">AURENBOT</p><h1>Seus avisos</h1>
+  <p>Saiba quando o jogo precisa da sua resposta. Receba no PC, no celular ou nos dois. Seus dados ficam salvos neste Chrome.</p>
   <form id="config" novalidate><fieldset id="campos" disabled>
-    <label class="check"><input id="ativadas" type="checkbox"> Ativar notificações</label>
+    <label class="check"><input id="ativadas" type="checkbox"> Receber avisos</label>
     <section class="device" aria-labelledby="windowsTitulo">
       <h2 id="windowsTitulo">Windows</h2>
-      <label class="check"><input id="windowsAtivado" type="checkbox"> Enviar avisos ao Windows</label>
-      <label for="windowsEndereco">Endereço do receptor Windows</label>
+      <label class="check"><input id="windowsAtivado" type="checkbox"> Enviar para o PC</label>
+      <label for="windowsEndereco">Endereço do app no PC</label>
       <input id="windowsEndereco" type="url" placeholder="http://100.64.0.10:8765" autocomplete="off">
-      <small>Abra o AurenBot Alertas no PC e copie o endereço. Na VPS, use o IP Tailscale do PC.</small>
-      <label for="windowsChave">Chave de acesso do Windows</label>
+      <small>Abra o AurenBot Alertas no PC e copie o endereço que começa com http://100. Use o Tailscale no PC e no computador do jogo.</small>
+      <label for="windowsChave">Código de acesso do PC</label>
       <input id="windowsChave" type="password" autocomplete="off">
-      <small>Copie a chave da aplicação no PC. Ela fica salva mesmo se você desmarcar este dispositivo.</small>
-      <button id="testarWindows" type="button">Testar Windows</button>
+      <small>Copie o código mostrado no app do PC. Você só precisa preencher uma vez e salvar.</small>
+      <button id="testarWindows" type="button">Testar no PC</button>
       <p id="windowsStatus" class="device-status" aria-live="polite"></p>
     </section>
     <section class="device" aria-labelledby="androidTitulo">
       <h2 id="androidTitulo">Android</h2>
-      <label class="check"><input id="androidAtivado" type="checkbox"> Enviar avisos ao Android</label>
-      <label for="androidEndereco">Endereço do celular Android</label>
+      <label class="check"><input id="androidAtivado" type="checkbox"> Enviar para o celular</label>
+      <label for="androidEndereco">Endereço do app no celular</label>
       <input id="androidEndereco" type="url" placeholder="http://100.64.0.20:8765" autocomplete="off">
-      <small>Abra o aplicativo no celular, permita notificações e toque em Iniciar receptor. Use o IP Tailscale do celular.</small>
-      <label for="androidChave">Chave de acesso do Android</label>
+      <small>Abra o app no celular e ligue os avisos. Copie o endereço que começa com http://100.</small>
+      <label for="androidChave">Código de acesso do celular</label>
       <input id="androidChave" type="password" autocomplete="off">
-      <small>Copie a chave exibida no aplicativo Android. Ela é independente da chave do Windows.</small>
-      <button id="testarAndroid" type="button">Testar Android</button>
+      <small>Copie o código mostrado no app do celular. Ele é diferente do código do PC.</small>
+      <button id="testarAndroid" type="button">Testar no celular</button>
       <p id="androidStatus" class="device-status" aria-live="polite"></p>
-      <p class="note">Conecte a VPS e o celular ao Tailscale. Para receber com a tela apagada, permita uso de bateria sem restrições para o aplicativo e o Tailscale. Som e vibração são controlados no celular.</p>
+      <p class="note">Use o Tailscale no celular e no computador do jogo. Para receber com a tela apagada, libere o uso de bateria do app e do Tailscale nas opções do Android. Ajuste o som no celular.</p>
     </section>
-    <small>Marque os dois dispositivos para receber simultaneamente. Desmarcar um dispositivo não apaga seu endereço nem sua chave.</small>
-    <label class="check"><input id="repetir" type="checkbox" checked> Repetir os avisos a cada minuto enquanto a verificação estiver aberta</label>
-    <div class="actions"><button id="salvar" type="submit">Salvar e autorizar endereços</button><button id="testar" type="button">Testar dispositivos ativados</button></div>
+    <small>Marque os dois para receber no PC e no celular. Desmarcar não apaga os dados salvos.</small>
+    <label class="check"><input id="repetir" type="checkbox" checked> Lembrar a cada minuto até você responder no jogo</label>
+    <div class="actions"><button id="salvar" type="submit">Salvar configurações</button><button id="testar" type="button">Testar avisos</button></div>
   </fieldset></form>
-  <output id="status" role="status">Carregando configuração…</output>
-  <p class="note">Cada receptor precisa estar ligado. Se um dispositivo estiver offline, o outro continua recebendo os avisos. Nenhuma imagem do CAPTCHA é enviada. Resolva a verificação manualmente pelo VNC.</p>
+  <output id="status" role="status">Buscando seus dados…</output>
+  <p class="note">Mantenha o app aberto em cada aparelho. Se um ficar sem conexão, o outro continua recebendo. O teste vai para os aparelhos marcados. Ao salvar, aceite a permissão se o Chrome pedir. Nenhuma imagem do jogo é enviada. Depois de um aviso, abra o jogo e responda à verificação.</p>
 </main></body></html>

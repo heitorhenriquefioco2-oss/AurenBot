@@ -41,14 +41,14 @@ test('dispara para os dois antes de aguardar resposta de qualquer receptor',asyn
 });
 test('erro de autenticação em um receptor não impede sucesso do outro',async()=>{
   const f=fixture(dual(),{fetch:async url=>url.includes('0.1:')?{ok:false,status:401}:{ok:true,json:async()=>({ok:true})}});
-  const result=await f.send();assert.equal(result.ok,false);assert.equal(result.resultados.find(r=>r.destino==='android').ok,true);assert.match(result.erro,/Windows: A chave foi recusada/);assert.ok(!JSON.stringify(result).includes(keyW));assert.ok(!JSON.stringify(result).includes(keyA));
+  const result=await f.send();assert.equal(result.ok,false);assert.equal(result.resultados.find(r=>r.destino==='android').ok,true);assert.match(result.erro,/Windows: Código de acesso incorreto/);assert.ok(!JSON.stringify(result).includes(keyW));assert.ok(!JSON.stringify(result).includes(keyA));
 });
 test('permissão ausente para Windows mantém envio Android independente',async()=>{
   const f=fixture(dual(),{permission:obj=>!obj.origins[0].includes('0.1/')});const r=await f.send();assert.equal(r.ok,false);assert.equal(r.resultados.find(r=>r.destino==='android').ok,true);assert.equal(f.calls.length,1);assert.match(f.calls[0].url,/0\.2:8765/);
 });
 test('timeout não cancela o envio ao outro receptor',async()=>{
   const f=fixture(dual(),{timer:(cb,ms)=>setTimeout(cb,ms===5000?10:ms),fetch:(url,opt)=>url.includes('0.1:')?new Promise((resolve,reject)=>opt.signal.addEventListener('abort',()=>reject(Object.assign(new Error(),{name:'AbortError'})))):Promise.resolve({ok:true,json:async()=>({ok:true})})});
-  const r=await f.send();assert.equal(r.resultados.find(r=>r.destino==='android').ok,true);assert.match(r.resultados.find(r=>r.destino==='windows').erro,/Não consegui alcançar/);
+  const r=await f.send();assert.equal(r.resultados.find(r=>r.destino==='android').ok,true);assert.match(r.resultados.find(r=>r.destino==='windows').erro,/Não consegui conectar/);
 });
 test('perfil desativado não é enviado e suas credenciais não são apagadas',async()=>{
   const cfg=dual();cfg.dispositivos.windows.ativado=false;const before=JSON.stringify(cfg),f=fixture(cfg);const r=await f.send();assert.equal(r.ok,true);assert.equal(f.calls.length,1);assert.equal(r.resultados[0].destino,'android');assert.equal(JSON.stringify(cfg),before);
@@ -63,8 +63,8 @@ test('configuração legada continua funcionando antes de abrir as opções',asy
   const f=fixture({ativadas:true,destino:'android',endereco:'http://100.70.0.2:8765',chave:keyA});const r=await f.send();assert.equal(r.ok,true);assert.equal(r.resultados[0].destino,'android');assert.equal(f.calls.length,1);
 });
 test('desativação global, nenhum perfil e teste de perfil desativado não enviam',async()=>{
-  const cfg=dual();cfg.ativadas=false;let f=fixture(cfg);assert.match((await f.send()).erro,/Ative e salve/);assert.equal(f.calls.length,0);
-  cfg.ativadas=true;cfg.dispositivos.windows.ativado=false;cfg.dispositivos.android.ativado=false;f=fixture(cfg);assert.equal((await f.send()).ok,false);assert.equal(f.calls.length,0);assert.match((await f.send({destino:'android'})).erro,/Ative e salve o envio/);
+  const cfg=dual();cfg.ativadas=false;let f=fixture(cfg);assert.match((await f.send()).erro,/Ligue os avisos/);assert.equal(f.calls.length,0);
+  cfg.ativadas=true;cfg.dispositivos.windows.ativado=false;cfg.dispositivos.android.ativado=false;f=fixture(cfg);assert.equal((await f.send()).ok,false);assert.equal(f.calls.length,0);assert.match((await f.send({destino:'android'})).erro,/Marque Android nos avisos/);
 });
 test('remetente, origem e destino inválidos não acionam receptores',async()=>{
   const f=fixture();assert.equal(await f.send({},{id:'other'}),undefined);assert.equal(await f.send({},{id:'own',tab:{id:1},url:'https://evil.example/'}),undefined);assert.equal((await f.send({destino:'other'})).ok,false);assert.equal(f.calls.length,0);

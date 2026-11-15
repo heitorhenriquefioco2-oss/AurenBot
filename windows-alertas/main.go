@@ -63,7 +63,7 @@ func loadSettings(path string) (settings, error) {
 			return cfg, err
 		}
 		if len(cfg.Token) < 32 {
-			return cfg, fmt.Errorf("chave de acesso inválida no arquivo de configuração")
+			return cfg, fmt.Errorf("o código de acesso salvo está incorreto")
 		}
 		return cfg, nil
 	}
@@ -96,7 +96,7 @@ func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	if d.Decode(out) != nil || d.Decode(new(any)) != io.EOF {
-		writeJSON(w, 400, map[string]any{"ok": false, "erro": "JSON inválido"})
+		writeJSON(w, 400, map[string]any{"ok": false, "erro": "Não entendi os dados enviados. Tente salvar as opções na extensão de novo."})
 		return false
 	}
 	return true
@@ -126,7 +126,7 @@ func (s *receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !localAdmin(r) {
-		writeJSON(w, 403, map[string]any{"erro": "Abra o painel por http://127.0.0.1 no próprio PC receptor."})
+		writeJSON(w, 403, map[string]any{"erro": "Abra esta página no PC onde o programa está ligado, usando o endereço que ele mostrou."})
 		return
 	}
 	switch {
@@ -142,7 +142,7 @@ func (s *receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if body.Sound == nil {
-			writeJSON(w, 400, map[string]any{"erro": "Informe som."})
+			writeJSON(w, 400, map[string]any{"erro": "Escolha se o aviso deve tocar um som."})
 			return
 		}
 		s.mu.Lock()
@@ -154,7 +154,7 @@ func (s *receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		s.mu.Unlock()
 		if err != nil {
-			writeJSON(w, 500, map[string]any{"erro": "Não consegui salvar a configuração."})
+			writeJSON(w, 500, map[string]any{"erro": "Não consegui salvar suas opções. Tente de novo."})
 			return
 		}
 		writeJSON(w, 200, map[string]any{"ok": true})
@@ -188,7 +188,7 @@ func (s *receiver) receive(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		if !regexp.MustCompile(`^chrome-extension://[a-p]{32}$`).MatchString(origin) {
-			writeJSON(w, 403, map[string]any{"erro": "Origem não permitida."})
+			writeJSON(w, 403, map[string]any{"erro": "Essa conexão não foi permitida. Envie o aviso pela extensão."})
 			return
 		}
 		w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -203,7 +203,7 @@ func (s *receiver) receive(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
-		writeJSON(w, 405, map[string]any{"erro": "Use POST."})
+		writeJSON(w, 405, map[string]any{"erro": "Envie o aviso pelo botão de teste da extensão."})
 		return
 	}
 	s.mu.Lock()
@@ -212,7 +212,7 @@ func (s *receiver) receive(w http.ResponseWriter, r *http.Request) {
 	header := r.Header.Get("Authorization")
 	auth := strings.TrimPrefix(header, "Bearer ")
 	if !strings.HasPrefix(header, "Bearer ") || len(auth) != len(token) || subtle.ConstantTimeCompare([]byte(auth), []byte(token)) != 1 {
-		writeJSON(w, 401, map[string]any{"erro": "Chave de acesso inválida."})
+		writeJSON(w, 401, map[string]any{"erro": "Código de acesso incorreto. Copie de novo neste app e salve na extensão."})
 		return
 	}
 	var body struct {
@@ -223,7 +223,7 @@ func (s *receiver) receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.ID == "" || len(body.ID) > 100 || (body.Kind != "cloudflare" && body.Kind != "sombra") {
-		writeJSON(w, 400, map[string]any{"erro": "Aviso inválido."})
+		writeJSON(w, 400, map[string]any{"erro": "Não entendi o aviso. Recarregue o jogo e tente de novo."})
 		return
 	}
 	s.mu.Lock()
@@ -241,12 +241,12 @@ func (s *receiver) receive(w http.ResponseWriter, r *http.Request) {
 	if now.Sub(s.last) < 10*time.Second {
 		s.mu.Unlock()
 		w.Header().Set("Retry-After", "10")
-		writeJSON(w, 429, map[string]any{"erro": "Aguarde alguns segundos."})
+		writeJSON(w, 429, map[string]any{"erro": "Aguarde alguns segundos antes de enviar outro aviso."})
 		return
 	}
 	if len(s.seen) >= 4096 {
 		s.mu.Unlock()
-		writeJSON(w, 429, map[string]any{"erro": "Limite diário de avisos atingido."})
+		writeJSON(w, 429, map[string]any{"erro": "Já recebi muitos avisos. Aguarde antes de tentar de novo."})
 		return
 	}
 	e := event{ID: body.ID, Kind: body.Kind, Time: now}
@@ -282,12 +282,12 @@ func openBrowser(url string) {
 	_ = cmd.Start()
 }
 func main() {
-	port := flag.Int("port", 8765, "Porta do receptor")
-	headless := flag.Bool("headless", false, "Não abrir o painel automaticamente")
-	configPath := flag.String("config", "", "Arquivo de configuração")
+	port := flag.Int("port", 8765, "Número usado para receber os avisos")
+	headless := flag.Bool("headless", false, "Não abrir a página de opções ao ligar")
+	configPath := flag.String("config", "", "Arquivo com os dados salvos")
 	flag.Parse()
 	if *port < 1 || *port > 65535 {
-		platformError("Porta inválida.")
+		platformError("Escolha um número de conexão de 1 a 65535.")
 		return
 	}
 	if *configPath == "" {
@@ -300,12 +300,12 @@ func main() {
 	}
 	cfg, err := loadSettings(*configPath)
 	if err != nil {
-		platformError("Não consegui ler a configuração: " + err.Error())
+		platformError("Não consegui abrir seus dados salvos: " + err.Error())
 		return
 	}
 	listener, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", *port))
 	if err != nil {
-		platformError(fmt.Sprintf("Não consegui usar a porta %d. O receptor já pode estar aberto. Abra http://127.0.0.1:%d", *port, *port))
+		platformError(fmt.Sprintf("Não consegui ligar os avisos na conexão %d. O app pode já estar aberto. Acesse http://127.0.0.1:%d", *port, *port))
 		return
 	}
 	notify, cleanup, err := platformNotifier()

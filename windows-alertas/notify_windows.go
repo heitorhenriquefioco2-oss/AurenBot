@@ -72,7 +72,7 @@ func platformNotifier() (func(event, bool), func(), error) {
 	}()
 	hwnd := <-ready
 	if hwnd == 0 {
-		return nil, nil, fmt.Errorf("Não consegui criar o receptor de notificações do Windows.")
+		return nil, nil, fmt.Errorf("Não consegui ligar os avisos. Feche o programa e abra de novo.")
 	}
 	icon, _, _ := user32.NewProc("LoadIconW").Call(0, 32515)
 	data := iconData{Window: hwnd, ID: 1, Flags: 2 | 4, Icon: icon}
@@ -80,22 +80,22 @@ func platformNotifier() (func(event, bool), func(), error) {
 	putUTF16(data.Tip[:], "AurenBot Alertas")
 	result, _, _ := shellNotify.Call(0, uintptr(unsafe.Pointer(&data)))
 	if result == 0 {
-		return nil, nil, fmt.Errorf("Não consegui registrar o ícone de notificações no Windows.")
+		return nil, nil, fmt.Errorf("Não consegui mostrar os avisos no Windows. Feche o programa e abra de novo.")
 	}
 	var mu sync.Mutex
 	notify := func(e event, sound bool) {
 		mu.Lock()
 		defer mu.Unlock()
-		message := "Uma verificação apareceu no Auren. Abra o jogo pelo VNC e conclua manualmente."
+		message := "O jogo pediu uma verificação. Abra o Auren e responda para continuar."
 		if e.Kind == "sombra" {
-			message = "O desafio de sombra apareceu no Auren. Abra o jogo pelo VNC para responder."
+			message = "O jogo mostrou um desafio de sombra. Abra o Auren e escolha a resposta."
 		}
 		if e.Kind == "teste" {
-			message = "Tudo pronto! Este PC pode receber os avisos da extensão AurenBot."
+			message = "O teste funcionou. Este PC está pronto para receber os avisos do jogo."
 		}
 		info := iconData{Window: hwnd, ID: 1, Flags: 16, Timeout: 15000, InfoFlags: 2 | 16}
 		info.Size = uint32(unsafe.Sizeof(info))
-		putUTF16(info.Title[:], "AurenBot — precisa de você")
+		putUTF16(info.Title[:], "AurenBot — abra o jogo")
 		putUTF16(info.Info[:], message)
 		ok, _, _ := shellNotify.Call(1, uintptr(unsafe.Pointer(&info)))
 		if sound {

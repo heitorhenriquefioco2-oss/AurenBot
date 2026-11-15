@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.23, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.24, com abas de Caçada e Expedição, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -17,7 +17,7 @@ Extensão Chrome de caçada v3.3.23, com abas de Caçada e Expedição, renovaç
 - Escolha o vigor mínimo para atacar e o modo de recuperação.
 - Configure os limites da poção de vigor maior e da poção de vigor.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
-- Para usar na VPS, marque **Continuar quando a aba estiver oculta** antes de clicar em Iniciar.
+- Para usar na VPS, marque **Continuar mesmo sem olhar a aba do jogo** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
 - Ao clicar em **Iniciar** no painel, o bot seleciona **Só o resultado** e valida as configurações. Uma expedição ativa pode continuar em paralelo. Se a manutenção de expedições estiver ativada, confere ou inicia a jornada e retorna à **Caçada**, reconfirmando **Só o resultado** antes de continuar.
 - Configure a criatura e os limites na aba **Caçada**. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém as duas automações paradas.
@@ -32,13 +32,13 @@ As configurações são salvas localmente pela extensão neste perfil do Chrome.
 
 A leitura prioriza a barra de Vigor da caçada, inclusive quando o cabeçalho mostra uma expedição. A **Poção de vigor** recupera 40 pontos de vigor (40% da barra), e a **Poção de vigor maior** recupera 100 pontos (barra completa). Vigor em zero também permite recuperação, por poções ou regeneração, conforme suas escolhas. Os limites e preferências salvos são preservados: o limite da antiga poção de alívio passa a controlar a poção comum, e o da antiga restauradora passa a controlar a maior.
 
-Na aba **Caçada**, marque **Usar poção comum quando a poção de vigor maior não estiver disponível** para permitir a substituição. Vem desmarcada e fica salva neste perfil. Alterar a opção pausa a automação; clique em **Iniciar** para aplicar.
+Na aba **Caçada**, marque **Usar a poção comum se a maior acabar** para permitir a substituição. Vem desmarcada e fica salva neste perfil. Alterar a opção pausa a automação; clique em **Iniciar** para aplicar.
 
 Quando a decisão for usar a maior, mas seu botão estiver ausente ou indisponível, tenta usar uma única poção comum identificada e habilitada. Se a maior estiver habilitada, ela continua sendo a prioridade. Um botão marcado como ocupado não autoriza substituição. Se a comum também estiver indisponível ou ambígua, espera regenerar. O modo de regeneração e a economia de poções mantêm prioridade. Cada uso da comum aguarda a confirmação de recuperação de 40 pontos antes de reavaliar o vigor; não gasta várias poções de uma vez nem substitui a comum pela maior.
 
 ## VPS e aba oculta
 
-A opção **Continuar quando a aba estiver oculta** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém o ciclo quando o navegador informa que a aba ficou oculta, inclusive se isso acontecer ao minimizar a janela ou desconectar o RDP. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
+A opção **Continuar mesmo sem olhar a aba do jogo** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém o ciclo quando o navegador informa que a aba ficou oculta, inclusive se isso acontecer ao minimizar a janela ou desconectar o RDP. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
 
 O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. O navegador ainda pode reduzir a frequência dos ciclos, congelar ou descartar a aba em segundo plano; esta opção apenas desativa a pausa por visibilidade e não impede essas limitações. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
 
@@ -50,17 +50,17 @@ Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusiv
 
 ## Reinício automático após paradas por erro
 
-Marque **Reiniciar automaticamente após uma parada por erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
+Marque **Tentar continuar sozinho após um erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
-**Pausar**, **Ocultar painel**, **Conferir jogo** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar quando a aba estiver oculta**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+**Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar mesmo sem olhar a aba do jogo**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
 ## Notificações no Windows e Android
 
 Para receber no Windows, execute o **AurenBot Alertas** no PC que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
 
-No painel da extensão, abra **Notificações: Windows e Android**. Ative **Ativar notificações** e marque **Enviar avisos ao Windows**, **Enviar avisos ao Android** ou os dois. Cada dispositivo possui seus próprios campos de endereço e chave. Preencha os dados de ambos, clique em **Salvar e autorizar endereços** e permita acesso aos endereços escolhidos. Use **Testar Windows**, **Testar Android** ou **Testar dispositivos ativados** para verificar cada conexão.
+No painel da extensão, abra **Configurar avisos**. Ative **Receber avisos** e marque **Enviar para o PC**, **Enviar para o celular** ou os dois. Cada dispositivo possui seus próprios campos de endereço e chave. Preencha os dados de ambos, clique em **Salvar configurações** e permita acesso aos endereços escolhidos. Use **Testar no PC**, **Testar no celular** ou **Testar avisos** para verificar cada conexão.
 
 A partir da v3.3.23, os dois dispositivos recebem simultaneamente. O endereço e a chave de cada um ficam salvos localmente neste perfil do Chrome, inclusive quando seu envio é desmarcado ou quando as notificações são desativadas. Reabrir a página restaura os dois perfis; não é necessário copiar os dados novamente ao alternar o envio.
 
@@ -80,7 +80,7 @@ Os receptores precisam permanecer ligados. Fechar a aba de configuração do Win
 
 O aplicativo **AurenBot Alertas para Android 1.0.0** recebe os mesmos avisos, com notificação nativa, som e vibração opcionais. Requer Android 8 ou posterior e funciona com a extensão v3.3.20 ou posterior, sem alterar a automação.
 
-Instale o APK no celular, permita notificações e toque em **Iniciar receptor**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Notificações: Windows e Android** da extensão, marcando **Enviar avisos ao Android** e preenchendo os campos do celular. Salve, autorize o endereço e envie um teste. Marque também Windows para receber nos dois ao mesmo tempo.
+Instale o APK no celular, permita notificações e toque em **Ligar avisos**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Configurar avisos** da extensão, marcando **Enviar para o celular** e preenchendo os campos do celular. Salve, autorize o endereço e envie um teste. Marque também Windows para receber nos dois ao mesmo tempo.
 
 Para receber com a tela apagada, mantenha o serviço ligado e permita uso de bateria sem restrições para o aplicativo e o Tailscale. O receptor mantém a CPU acordada enquanto ligado, consumindo mais bateria; as políticas de rede e bateria do Android/fabricante ainda se aplicam. Não usa push externo. Após reiniciar o celular, abra o aplicativo e inicie novamente. Consulte [as instruções e o código do APK](android-alertas/README.md).
 
@@ -90,7 +90,7 @@ Quando a janela **A guarda pede um sinal** aparece, o bot aguarda e não aciona 
 
 A extensão não interage com o CAPTCHA nem resolve desafios. Conclua a validação e clique manualmente em **Apresentar o selo**: o jogo exige um clique manual confiável mesmo quando o widget mostra Sucesso. O painel avisa quando o botão está pronto. A extensão não tenta simular esse clique nem acessa a resposta do widget.
 
-Uma ação ainda sem confirmação depois da verificação continua sujeita ao prazo original de 45 segundos fora da verificação. A recuperação de ataques depende das condições descritas acima; poções continuam exigindo confirmação. As mensagens indicam o tipo da ação pendente, e **Conferir jogo** mostra também há quantos segundos ativos ela está aguardando. O diagnóstico não registra a resposta do Cloudflare.
+Uma ação ainda sem confirmação depois da verificação continua sujeita ao prazo original de 45 segundos fora da verificação. A recuperação de ataques depende das condições descritas acima; poções continuam exigindo confirmação. As mensagens indicam o tipo da ação pendente, e **Pausar e conferir** mostra também há quantos segundos ativos ela está aguardando. O diagnóstico não registra a resposta do Cloudflare.
 
 ## Mover o painel
 
@@ -104,7 +104,7 @@ O item do menu é localizado prioritariamente pelo título exato `title="Caçada
 
 Caçadas e expedições podem acontecer juntas. O bot não solicita nem aciona Pausar expedição para caçar.
 
-Na aba **Expedição**, marque **Manter sempre em expedição** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
+Na aba **Expedição**, marque **Iniciar outra expedição quando a atual terminar** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
 
 Se já houver uma jornada ativa, ela continua com sua duração original. Quando terminar, a próxima usa a duração configurada. Se houver uma jornada pausada, tenta retomá-la, preservando sua duração. Sem jornada ativa ou pausada, abre Expedição, confirma a duração e clica uma única vez em Explorar. Aguarda o jogo confirmar a partida, retorna para Caçada e reconfirma Só o resultado.
 

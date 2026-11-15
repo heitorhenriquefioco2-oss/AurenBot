@@ -18,16 +18,16 @@
   const agoraAtivo = () => Date.now() - (window.aurenAvisos?.tempoVerificacaoHumana || 0);
   function avisosBloqueando(reportar = status) {
     const bloqueado = window.aurenAvisos?.verificar();
-    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.tipoVerificacao === 'sombra' ? 'Desafio de sombra aberto. Responda manualmente no jogo para continuar.' : window.aurenAvisos.seloPronto ? 'Cloudflare validado. Clique manualmente em Apresentar o selo para continuar.' : 'Verificação do Cloudflare aberta. Conclua a validação e apresente o selo manualmente para continuar.');
+    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.tipoVerificacao === 'sombra' ? 'O jogo pediu uma resposta. Resolva o desafio de sombra para continuar.' : window.aurenAvisos.seloPronto ? 'A verificação está pronta. Clique em Apresentar o selo no jogo.' : 'Responda à verificação no jogo e clique em Apresentar o selo.');
     return !!bloqueado || !!window.aurenAvisos?.verificacaoHumana;
   }
   function percentual(valor, campo) {
     const texto = String(valor ?? '').trim().replace(/\s*%\s*$/, '').trim();
     if (!/^\d+(?:[.,]\d+)?$/.test(texto)) {
-      throw Error(`${campo}: use um número entre 0 e 100. Por exemplo, 80 ou 80,5.`);
+      throw Error(`${campo}: digite um número de 0 a 100. Exemplo: 80 ou 80,5.`);
     }
     const n = Number(texto.replace(',', '.'));
-    if (!Number.isFinite(n) || n < 0 || n > 100) throw Error(`${campo}: escolha um valor de 0 a 100.`);
+    if (!Number.isFinite(n) || n < 0 || n > 100) throw Error(`${campo}: digite um número de 0 a 100.`);
     return n;
   }
   const seletores = {
@@ -130,12 +130,12 @@
     let clicado = false;
     while (valido()) {
       if (telaCacada()) return true;
-      if (agoraAtivo() - inicio > prazo) throw Error('Não consegui abrir a Caçada. Clique em Caçada no menu esquerdo e tente de novo.');
+      if (agoraAtivo() - inicio > prazo) throw Error('Não consegui abrir a Caçada. Abra essa tela no jogo e tente de novo.');
       if (!avisosBloqueando(reportar) && !clicado) {
         const botao = menuCacada();
         if (botao && clicar(botao)) {
           clicado = true;
-          reportar('Abrindo a Caçada. Só um instante…');
+          reportar('Abrindo a Caçada…');
         }
       }
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -161,9 +161,9 @@
     let clicou = false;
     while (preparacao === token && !removido) {
       if (telaExpedicao()) return true;
-      if (agoraAtivo() - inicio > 8000) throw Error('Não consegui abrir Expedição pelo menu do jogo.');
+      if (agoraAtivo() - inicio > 8000) throw Error('Não consegui abrir a Expedição. Abra essa tela no jogo e tente de novo.');
       if (!avisosBloqueando() && !clicou && clicar(menuExpedicao())) {
-        clicou = true; status('Abrindo Expedição para conferir sua jornada…');
+        clicou = true; status('Abrindo a Expedição…');
       }
       await new Promise(resolve => setTimeout(resolve, 200));
     }
@@ -183,11 +183,11 @@
     try {
       if (estadoExpedicao().ativa) {
         expedicaoPendente = null;
-        statusExpedicao('Expedição em andamento. A caçada continua normalmente.');
+        statusExpedicao('Sua expedição está em andamento. A caçada continua.');
         return true;
       }
       if (expedicaoPendente) {
-        statusExpedicao('Aguardando o jogo confirmar a expedição solicitada. Não vou repetir o clique. Confira Expedição no jogo se a espera continuar.');
+        statusExpedicao('Esperando a expedição começar. Se demorar, confira a tela Expedição no jogo.');
         return true;
       }
       if (!(await navegarExpedicao(token))) return false;
@@ -198,19 +198,19 @@
         const estado = estadoExpedicao();
         if (estado.ativa) {
           expedicaoPendente = null;
-          statusExpedicao('Expedição confirmada. Voltando para a Caçada.');
+          statusExpedicao('Expedição iniciada. Voltando à Caçada.');
           break;
         }
-        if (agoraAtivo() - inicio > 15000) throw Error(expedicaoPendente ? 'O jogo ainda não confirmou a expedição solicitada. Vou continuar a caçada sem repetir o envio.' : 'Não consegui preparar a expedição. Confira a duração, o território e a estratégia no jogo.');
+        if (agoraAtivo() - inicio > 15000) throw Error(expedicaoPendente ? 'A expedição ainda não foi confirmada. Vou continuar caçando sem tentar iniciá-la de novo.' : 'Não consegui iniciar a expedição. Confira o tempo, o território e a estratégia no jogo.');
         if (!expedicaoPendente) {
           if (estado.pausada) {
             if (clicar(estado.retomar)) {
               expedicaoPendente = { acao: 'retomar' };
-              statusExpedicao('Solicitei retomar a expedição existente. Aguardando confirmação…');
+              statusExpedicao('Esperando o jogo retomar sua expedição…');
             }
           } else {
             const duracao = opcaoDuracao(config.duracaoExpedicao);
-            if (!duracao) throw Error('Não encontrei uma única opção para a duração escolhida. Configure o destino em Expedição no jogo.');
+            if (!duracao) throw Error('Não consegui escolher esse tempo. Confira a duração na tela Expedição do jogo.');
             if (!selecionada(duracao)) {
               if (!selecionouDuracao && clicar(duracao)) selecionouDuracao = true;
             } else {
@@ -218,7 +218,7 @@
               const iniciarExpedicao = unico(botoes().filter(el => rotuloControle(el) === `explorar por ${duracaoEsperada}`));
               if (clicar(iniciarExpedicao)) {
                 expedicaoPendente = { acao: 'iniciar', minutos: config.duracaoExpedicao };
-                statusExpedicao('Expedição solicitada. Aguardando o jogo confirmar a partida…');
+                statusExpedicao('Esperando a expedição começar…');
               }
             }
           }
@@ -238,7 +238,7 @@
     try {
       await prepararExpedicao(token);
     } catch (e) {
-      if (preparacao === token) pausar(`Não consegui voltar à Caçada após conferir a expedição: ${e.message}`, true);
+      if (preparacao === token) pausar(`Não consegui voltar à Caçada: ${e.message}`, true);
     } finally {
       if (preparacao === token) preparacao = null;
     }
@@ -259,13 +259,13 @@
     const inicio = agoraAtivo();
     let clicado = false;
     while (preparacao === token && !removido) {
-      if (agoraAtivo() - inicio > 8000) throw Error('Não consegui selecionar Só o resultado. Confira essa opção na tela de Caçada e tente de novo.');
+      if (agoraAtivo() - inicio > 8000) throw Error('Não consegui marcar Só o resultado. Marque essa opção no jogo e tente de novo.');
       if (!avisosBloqueando()) {
         const botao = botaoSoResultado();
         if (botao && modoResultadoConfirmado(botao)) return true;
         if (botao && !clicado && clicar(botao)) {
           clicado = true;
-          status('Selecionando Só o resultado para agilizar suas caçadas…');
+          status('Marcando Só o resultado para pular a animação da luta…');
         }
       }
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -343,42 +343,42 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Seu assistente de caçada v3.3.23</h2><small>Arraste este título para mover o painel.</small></header>
-    <p>Configure sua caçada e, se quiser, mantenha uma expedição em paralelo. Quando estiver pronto, clique em Iniciar.</p>
-    <nav role="tablist" aria-label="Configurações do bot"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button></nav>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.24</h2><small>Arraste este título para mover o painel.</small></header>
+    <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
+    <nav role="tablist" aria-label="Opções de caçada e expedição"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
-    <label>Qual criatura você quer caçar?<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
-    <small>Copie o nome como aparece no jogo e deixe a região dessa criatura aberta.</small>
-    <label>Como recuperar o vigor?<select id="modo"><option value="pocao">Usar poções quando precisar</option><option value="natural">Esperar o vigor recuperar sozinho</option></select></label>
-    <div class="grid"><label>Caçar com pelo menos (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label><label>Usar poção de vigor maior com até (%)<input id="limite" type="text" inputmode="decimal" value="30"></label></div>
-    <label>Usar poção de vigor com até (%)<input id="limiteAlivio" type="text" inputmode="decimal" value="70"></label>
-    <label><input id="substituirMaior" type="checkbox"> Usar poção comum quando a poção de vigor maior não estiver disponível</label>
-    <small>No modo com poções, usa a poção de vigor maior com pouco vigor. Acima do limite dela, usa a poção de vigor até o limite escolhido. Depois disso, espera o vigor recuperar. Ao atingir o vigor mínimo para caçar, volta ao combate.</small>
-    <label><input id="economizar" type="checkbox" checked> Esperar um pouco para economizar poções</label>
-    <label>Esperar se faltar até (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
-    <small>Exemplo: para caçar com 80%, esperar 5 significa aguardar o vigor subir de 75% para 80%, sem gastar poção. Essa espera tem prioridade sobre o uso de poções. Se a poção não estiver disponível, o bot também espera.</small>
+    <label>Criatura que você quer caçar<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
+    <small>Digite o nome igual ao do jogo e deixe a região da criatura aberta.</small>
+    <label>Como recuperar o vigor?<select id="modo"><option value="pocao">Usar poções quando precisar</option><option value="natural">Esperar o vigor voltar sozinho</option></select></label>
+    <div class="grid"><label>Vigor mínimo para caçar (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label><label>Usar a poção maior até (%)<input id="limite" type="text" inputmode="decimal" value="30"></label></div>
+    <label>Usar a poção comum até (%)<input id="limiteAlivio" type="text" inputmode="decimal" value="70"></label>
+    <label><input id="substituirMaior" type="checkbox"> Usar a poção comum se a maior acabar</label>
+    <small>Com pouco vigor, usa a poção maior. Acima do limite dela, usa a comum até o valor escolhido. Depois, espera o vigor voltar. Ao chegar ao mínimo para caçar, volta à luta.</small>
+    <label><input id="economizar" type="checkbox" checked> Esperar um pouco e poupar poções</label>
+    <label>Esperar quando faltar até (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
+    <small>Exemplo: se você caça com 80% e escolhe 5, o bot espera o vigor subir de 75% para 80% sem gastar poção. Essa espera vem antes das poções. Se não houver poção disponível, também espera.</small>
     </div>
     <div id="abaExpedicao" role="tabpanel" aria-labelledby="tabExpedicao" hidden>
-      <label><input id="manterExpedicao" type="checkbox"> Manter sempre em expedição</label>
-      <label>Duração das novas expedições<select id="duracaoExpedicao" disabled><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option></select></label>
-      <small>Usa o território, grau e estratégia selecionados em Expedição no jogo. Configure esse destino antes de ativar. Ao iniciar ou renovar a jornada, volta para Caçada e reconfirma Só o resultado. Uma jornada já ativa continua até terminar; a duração escolhida vale para a próxima.</small>
-      <output id="statusExpedicao" aria-live="polite">Opcional: ative para iniciar ou retomar expedições e renová-las entre as caçadas.</output>
+      <label><input id="manterExpedicao" type="checkbox"> Iniciar outra expedição quando a atual terminar</label>
+      <label>Tempo de cada nova expedição<select id="duracaoExpedicao" disabled><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option></select></label>
+      <small>Antes de ativar, escolha o território, o grau e a estratégia na tela Expedição do jogo. O bot inicia a viagem e volta à Caçada. Se já houver uma viagem em andamento, espera ela terminar. O tempo escolhido vale para a próxima.</small>
+      <output id="statusExpedicao" aria-live="polite">Ative se quiser manter uma expedição enquanto caça.</output>
     </div>
-    <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar quando a aba estiver oculta</label>
-    <small id="ajudaContinuarOculta">Útil em VPS ao desconectar o RDP. Mantenha o jogo e o Chrome abertos. O navegador pode reduzir a frequência dos ciclos em segundo plano.</small>
-    <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Reiniciar automaticamente após uma parada por erro</label>
-    <small id="ajudaReinicio">Após clicar em Iniciar, verifica a cada 10 segundos se já pode retomar. Pausar, Ocultar painel e alterar configurações cancelam o reinício. Aguarda vigor válido e confirmação das ações pendentes.</small>
-    <nav><button id="configurarAvisos">Notificações: Windows e Android</button></nav><small id="statusAvisos" aria-live="polite">Notificações desativadas.</small>
-    <nav><button id="diagnostico">Conferir jogo</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
-    <small>Ocultar o painel também pausa a caçada. Para abrir de novo, clique no ícone da extensão. Os avisos reconhecidos continuam sendo fechados mesmo com a caçada pausada.</small>
-    <output id="status" aria-live="polite">Tudo pronto para configurar. A caçada só começa quando você clicar em Iniciar.</output><pre id="log"></pre></section>`;
+    <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar mesmo sem olhar a aba do jogo</label>
+    <small id="ajudaContinuarOculta">Use para deixar o bot caçando enquanto você usa outra aba ou fecha a conexão remota. Mantenha o jogo e o Chrome abertos. O Chrome pode deixar o bot mais lento quando a aba não está visível.</small>
+    <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Tentar continuar sozinho após um erro</label>
+    <small id="ajudaReinicio">Se um erro parar a caçada, tenta continuar a cada 10 segundos. Primeiro, confere o vigor e espera a resposta do jogo. Pausar, ocultar o painel ou mudar uma opção cancela essas tentativas.</small>
+    <nav><button id="configurarAvisos">Configurar avisos</button></nav><small id="statusAvisos" aria-live="polite">Avisos desligados.</small>
+    <nav><button id="diagnostico">Pausar e conferir</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
+    <small>Ocultar também pausa a caçada. Para abrir o painel de novo, clique no ícone da extensão. O bot continua fechando os avisos do jogo que reconhece.</small>
+    <output id="status" aria-live="polite">Escolha suas opções e clique em Iniciar para começar.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
   window.aurenAvisos?.ouvirAvisosWindows?.(texto=>{ui('statusAvisos').textContent=texto;});
   ui('configurarAvisos').onclick = async () => {
     try {
       const result = await chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'configurar'});
-      if (!result?.ok) throw Error(result?.erro || 'Não consegui abrir a configuração dos avisos.');
+      if (!result?.ok) throw Error(result?.erro || 'Não consegui abrir os avisos. Tente de novo.');
     } catch(error) { ui('statusAvisos').textContent=error.message; }
   };
   function abrirAba(id) {
@@ -461,14 +461,14 @@
     ui('log').textContent = linhas.join('\n');
   }
   function lerConfig() {
-    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vigor para atacar'), limite: percentual(ui('limite').value, 'Limite da poção de vigor maior'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção de vigor'), substituirMaior: ui('substituirMaior').checked, economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Margem de economia'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked, manterExpedicao: ui('manterExpedicao').checked, duracaoExpedicao: Number(ui('duracaoExpedicao').value) };
-    if (![15, 60, 240].includes(c.duracaoExpedicao)) throw Error('Escolha uma duração válida para a expedição.');
-    if (!c.criatura) throw Error('Informe o nome exato da criatura.');
-    if (c.atacar < 30) throw Error('Escolha pelo menos 30% de vigor para começar a caçar.');
-    if (c.limiteAlivio < c.limite) throw Error('O limite da poção de vigor precisa ser igual ou maior que o da poção de vigor maior.');
+    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vigor mínimo para caçar'), limite: percentual(ui('limite').value, 'Limite da poção maior'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção comum'), substituirMaior: ui('substituirMaior').checked, economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Quanto falta para caçar'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked, manterExpedicao: ui('manterExpedicao').checked, duracaoExpedicao: Number(ui('duracaoExpedicao').value) };
+    if (![15, 60, 240].includes(c.duracaoExpedicao)) throw Error('Escolha 15 minutos, 1 hora ou 4 horas para a expedição.');
+    if (!c.criatura) throw Error('Digite o nome da criatura igual ao do jogo.');
+    if (c.atacar < 30) throw Error('O vigor mínimo para caçar deve ser de pelo menos 30%.');
+    if (c.limiteAlivio < c.limite) throw Error('O limite da poção comum deve ser igual ou maior que o limite da maior.');
     return c;
   }
-  function pausar(msg = 'Você pausou a caçada. Clique em Iniciar quando quiser continuar.', automatica = false) {
+  function pausar(msg = 'Caçada pausada. Clique em Iniciar para continuar.', automatica = false) {
     ataquePronto = null;
     const retomar = automatica && reinicioArmado && config?.reiniciarAutomaticamente;
     clearTimeout(timerReinicio); timerReinicio = null;
@@ -483,7 +483,7 @@
   function agendarReinicio(msg) {
     if (!reinicioArmado || removido || host.hidden || !config?.reiniciarAutomaticamente) return;
     clearTimeout(timerReinicio);
-    status(`${msg} Reinício automático: nova verificação em 10 segundos.`);
+    status(`${msg} Vou tentar continuar em 10 segundos.`);
     timerReinicio = setTimeout(tentarReinicio, 10000);
   }
   function confirmarAcaoPendente(hp, r) {
@@ -498,22 +498,22 @@
     return false;
   }
   function descreverPendencia(incluirTempo = true) {
-    if (!pendente) return 'Nenhuma ação pendente.';
-    const tipos = { ataque: 'Ataque', fechamento: 'Fechamento do resultado', alivio: 'Poção de vigor', restauradora: 'Poção de vigor maior' };
+    if (!pendente) return 'Nenhuma resposta do jogo em espera.';
+    const tipos = { ataque: 'Ataque', fechamento: 'Fechar resultado', alivio: 'Poção de vigor', restauradora: 'Poção de vigor maior' };
     const segundos = Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000);
-    return `${tipos[pendente.tipo] || 'Ação'} aguardando confirmação${incluirTempo ? ` há ${segundos} segundos ativos` : ''}.`;
+    return `${tipos[pendente.tipo] || 'Ação'} esperando a resposta do jogo${incluirTempo ? ` há ${segundos} segundos de espera` : ''}.`;
   }
   function recuperarAtaqueSemResultado() {
     motivoRecuperacao = '';
     if (pendente?.tipo !== 'ataque' || agoraAtivo() - pendente.inicio <= 45000) return false;
     const resultados = todos('button.hero-header-results, button[aria-label="Ver resultados pendentes"]');
     if (resultados.length) {
-      motivoRecuperacao = 'Há resultados pendentes no jogo. Aguardando a abertura do resultado.';
+      motivoRecuperacao = 'O jogo tem um resultado para mostrar. Esperando ele abrir.';
       ataquePronto = null;
       if (resultados.length === 1 && !pendente.tentouAbrirResultados && habilitado(resultados[0])) {
         pendente.tentouAbrirResultados = true;
         clicar(resultados[0]);
-        status('Abrindo os resultados pendentes para localizar a confirmação do ataque.');
+        status('Abrindo o resultado da última luta…');
       }
       return false;
     }
@@ -521,8 +521,8 @@
     const pronto = telaCacada() && modoResultadoConfirmado(modo) &&
       criatura && selecionada(criatura) && habilitado(botao) && !botao.closest('[aria-busy="true"]') &&
       !todos('dialog[open], [role="dialog"], [aria-modal="true"]').length;
-    if (!pronto) { ataquePronto = null; motivoRecuperacao = 'O jogo ainda não libera uma nova caçada para a criatura configurada.'; return false; }
-    motivoRecuperacao = 'Nova caçada liberada. Aguardando 10 segundos de estabilidade antes de reavaliar o ciclo.';
+    if (!pronto) { ataquePronto = null; motivoRecuperacao = 'O jogo ainda não permite caçar essa criatura de novo.'; return false; }
+    motivoRecuperacao = 'O jogo liberou outra caçada. Vou esperar 10 segundos para conferir se está tudo pronto.';
     if (ataquePronto?.registro !== pendente) {
       ataquePronto = { registro: pendente, desde: agoraAtivo(), botao, criatura, modo };
       return false;
@@ -534,19 +534,19 @@
     if (agoraAtivo() - ataquePronto.desde < 10000) return false;
     // A interface está estável e pronta; reavalia um novo ciclo sem presumir o resultado anterior.
     pendente = null; ataquePronto = null; selecionando = null;
-    status('O jogo liberou uma nova caçada sem exibir o resultado anterior. Reavaliando o ciclo com o vigor atual.');
+    status('O jogo liberou outra caçada, mas não mostrou o último resultado. Vou conferir o vigor antes de continuar.');
     return true;
   }
   async function tentarReinicio() {
     timerReinicio = null;
     if (!reinicioArmado || timer || preparacao || removido || host.hidden) return;
     try {
-      if (avisosBloqueando()) { ataquePronto = null; return agendarReinicio('Aguardando a verificação ou o aviso do jogo ser concluído.'); }
-      if (document.hidden && !config.continuarOculta) { ataquePronto = null; return agendarReinicio('Aguardando a aba do jogo ficar visível.'); }
+      if (avisosBloqueando()) { ataquePronto = null; return agendarReinicio('Esperando você responder ou fechar o aviso no jogo.'); }
+      if (document.hidden && !config.continuarOculta) { ataquePronto = null; return agendarReinicio('Abra a aba do jogo para continuar.'); }
       const hp = lerVigor(), r = resultado();
-      if (hp === null) { ataquePronto = null; return agendarReinicio('Aguardando uma leitura válida de vigor.'); }
+      if (hp === null) { ataquePronto = null; return agendarReinicio('Esperando o vigor aparecer no jogo.'); }
       if (!confirmarAcaoPendente(hp, r) && !recuperarAtaqueSemResultado()) {
-        return agendarReinicio(`${descreverPendencia(false)} ${motivoRecuperacao || 'Aguardando confirmação do jogo, sem repetir cliques.'}`);
+        return agendarReinicio(`${descreverPendencia(false)} ${motivoRecuperacao || 'Esperando a resposta do jogo antes de tentar outra ação.'}`);
       }
       selecionando = null;
       await iniciar(true);
@@ -556,17 +556,17 @@
     const c = lerConfig(), hp = lerVigor(), criatura = localizarCriatura(c.criatura);
     const d = { vigor: hp, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana, pendente: pendente && pendente.tipo, segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000) : null, configuracao: c };
     console.info('Diagnóstico Auren (nenhum clique):', d);
-    const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'encontrado, mas ainda indisponível') : 'não encontrado';
+    const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'ainda não pode ser usado') : 'não encontrado';
     status([
-      'Confira antes de começar:',
-      hp === null ? 'Vigor: não consegui ler o vigor do herói.' : `Vigor atual: ${hp.toFixed(2)}%.`,
+      'Situação do jogo:',
+      hp === null ? 'Vigor: ainda não consegui ver o valor.' : `Vigor atual: ${hp.toFixed(2)}%.`,
       `Criatura: ${c.criatura} — ${criatura ? 'encontrada' : 'confira o nome e a região aberta'}.`,
-      `Só o resultado: ${d.modalidadeResultado.confirmada ? 'já selecionado' : 'será selecionado ao clicar em Iniciar'}.`,
+      `Só o resultado: ${d.modalidadeResultado.confirmada ? 'já selecionado' : 'será marcado ao iniciar'}.`,
       `Botão para caçar: ${encontrado(botaoAtacar())}.`,
       `Poção de vigor: ${encontrado(botaoPocao('alivio'))}.`,
       `Poção de vigor maior: ${encontrado(botaoPocao('restauradora'))}.`,
-      `Expedição automática: ${c.manterExpedicao ? `ativada, duração das novas jornadas: ${c.duracaoExpedicao} minutos` : 'desativada'}.`,
-      pendente ? descreverPendencia() : 'Nenhuma ação de caçada foi feita nesta conferência.'
+      `Expedições: ${c.manterExpedicao ? `ligada, tempo das próximas viagens: ${c.duracaoExpedicao} minutos` : 'desativada'}.`,
+      pendente ? descreverPendencia() : 'Esta consulta não iniciou lutas nem usou poções.'
     ].join('\n')); return d;
   }
   function ciclo() {
@@ -576,55 +576,55 @@
       const hp = lerVigor(), r = resultado(), agora = agoraAtivo();
       if (r && (!pendente || pendente.tipo === 'ataque')) {
         const btn = fecharResultado(r);
-        if (!btn) return pausar('A caçada terminou, mas não consegui encontrar o botão Continuar com segurança. Feche o resultado no jogo e tente de novo.', true);
+        if (!btn) return pausar('A luta terminou, mas não consegui fechar o resultado. Clique em Continuar no jogo e tente de novo.', true);
         if (clicar(btn)) {
           pendente = { tipo: 'fechamento', inicio: agora };
           selecionando = null;
-          status('Fechando o resultado para continuar caçando…');
-        } else status('Aguardando o jogo liberar o botão Continuar…');
+          status('Fechando o resultado da luta…');
+        } else status('Esperando o botão Continuar ficar disponível…');
         return;
       }
       if (pendente) {
         const tipo = pendente.tipo;
         if (confirmarAcaoPendente(hp, r)) {
-          status(tipo === 'fechamento' ? 'Resultado fechado! Conferindo o vigor antes da próxima caçada.' : 'O vigor foi recuperado. Vou conferir se já dá para caçar.');
+          status(tipo === 'fechamento' ? 'Resultado fechado. Conferindo o vigor para a próxima luta.' : 'O vigor voltou. Conferindo se já dá para caçar.');
         }
-        if (pendente && agora - pendente.inicio > 45000) pausar('O jogo demorou a responder. Pausei a caçada para evitar repetir uma ação. Confira o jogo antes de continuar.', true);
+        if (pendente && agora - pendente.inicio > 45000) pausar('O jogo demorou a responder. Pausei para não repetir uma ação. Confira o jogo antes de continuar.', true);
         return;
       }
       // Uma renderização temporária não deve desligar o ciclo. Só decide com uma leitura atual válida.
       if (hp === null) {
-        status('Não consegui ler o vigor do herói. Aguardando a leitura voltar para retomar automaticamente, sem atacar nem usar poções.');
+        status('O vigor ainda não apareceu. Vou esperar e continuar quando conseguir ver o valor. Por enquanto, não luto nem uso poções.');
         return;
       }
       if (config.manterExpedicao && agora >= proximaVerificacaoExpedicao) {
         proximaVerificacaoExpedicao = agora + 30000;
         if (estadoExpedicao().ativa) {
-          expedicaoPendente = null; statusExpedicao('Expedição em andamento. A caçada continua normalmente.');
+          expedicaoPendente = null; statusExpedicao('Sua expedição está em andamento. A caçada continua.');
         } else {
           void manutencaoExpedicao();
           return;
         }
       }
       let acao = decidir(config, hp);
-      if (acao === 'pausar') return pausar('Não consegui validar o vigor do herói. Confira o jogo antes de continuar.', true);
-      if (acao === 'regenerar') { status(`Seu vigor está em ${hp.toFixed(2)}%. Vou esperar chegar a ${config.atacar}% para caçar.`); return; }
+      if (acao === 'pausar') return pausar('Não consegui conferir o vigor. Veja o valor no jogo antes de continuar.', true);
+      if (acao === 'regenerar') { status(`Vigor em ${hp.toFixed(2)}%. Esperando chegar a ${config.atacar}% para caçar.`); return; }
       if (acao === 'atacar') {
         const criatura = localizarCriatura(config.criatura);
-        if (!criatura) return pausar('Não consegui identificar a criatura com segurança. Confira o nome e deixe a região dela aberta.', true);
+        if (!criatura) return pausar('Não encontrei a criatura. Confira o nome e abra a região dela no jogo.', true);
         if (!selecionada(criatura)) {
           if (selecionando && selecionando.nome === config.criatura) {
-            if (agora - selecionando.inicio > 8000) pausar('O jogo não confirmou a criatura escolhida. Selecione-a no jogo e use Conferir jogo.', true);
+            if (agora - selecionando.inicio > 8000) pausar('O jogo não confirmou a criatura. Escolha ela no jogo e clique em Pausar e conferir.', true);
             return;
           }
           const btn = criatura.matches('button,[role="button"]') ? criatura : unico(todos('button,[role="button"]', criatura));
-          if (!clicar(btn)) return pausar('Não consegui selecionar essa criatura. Clique nela no jogo e tente de novo.', true);
-          selecionando = { nome: config.criatura, inicio: agora }; status('Escolhendo a criatura. Aguardando o jogo confirmar…'); return;
+          if (!clicar(btn)) return pausar('Não consegui escolher a criatura. Clique nela no jogo e tente de novo.', true);
+          selecionando = { nome: config.criatura, inicio: agora }; status('Escolhendo a criatura. Esperando o jogo responder…'); return;
         }
         selecionando = null;
         const btn = botaoAtacar();
-        if (!clicar(btn)) return pausar('Não consegui usar o botão de caçar. Confira se a criatura está selecionada e se o jogo permite iniciar a caçada.', true);
-        pendente = { tipo: 'ataque', inicio: agora, hp }; status(`Caçando ${config.criatura}. Aguardando o resultado…`); return;
+        if (!clicar(btn)) return pausar('Não consegui começar a luta. Confira se a criatura está escolhida e se o botão de caçar está disponível.', true);
+        pendente = { tipo: 'ataque', inicio: agora, hp }; status(`Caçando ${config.criatura}. Esperando o resultado…`); return;
       }
       let btn = botaoPocao(acao);
       const substituir = acao === 'restauradora' && config.substituirMaior &&
@@ -632,15 +632,15 @@
       if (substituir) {
         const comum = botaoPocao('alivio');
         if (!habilitado(comum)) {
-          status('A poção de vigor maior não está disponível e não encontrei uma poção comum habilitada com segurança. Vou esperar o vigor recuperar.');
+          status('A poção maior não está disponível e não consegui usar a comum. Vou esperar o vigor voltar.');
           return;
         }
         acao = 'alivio'; btn = comum;
       }
-      if (!btn) { status(`Não consegui encontrar a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} com segurança. Vou esperar o vigor recuperar. Você pode usar Conferir jogo.`); return; }
-      if (!habilitado(btn)) { status(`A poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não está disponível. Vou esperar o vigor recuperar.`); return; }
-      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}${substituir ? ' no lugar da maior indisponível' : ''}. Aguardando o vigor recuperar…`); }
-    } catch (e) { pausar(`Erro: ${e.message}`, true); }
+      if (!btn) { status(`Não encontrei a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}. Vou esperar o vigor voltar. Para conferir, clique em Pausar e conferir.`); return; }
+      if (!habilitado(btn)) { status(`A poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não está disponível. Vou esperar o vigor voltar.`); return; }
+      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}${substituir ? ' no lugar da maior' : ''}. Esperando o vigor voltar…`); }
+    } catch (e) { pausar(`Não consegui continuar: ${e.message}`, true); }
   }
   async function iniciar(automatico = false) {
     if (timer || preparacao || removido) return;
@@ -649,9 +649,9 @@
     const token = {};
     try {
       preparacao = token;
-      if (pendente && agoraAtivo() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo não confirmou a última ação. Confira o que aconteceu e recarregue a página antes de tentar de novo.');
+      if (pendente && agoraAtivo() - pendente.inicio > 45000 && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo ainda não respondeu à última ação. Confira o jogo e recarregue a página antes de tentar de novo.');
       ui('iniciar').disabled = true;
-      status('Preparando a caçada.');
+      status('Preparando sua caçada…');
       if (!(await navegarCacada(() => preparacao === token && !removido))) return;
       if (preparacao !== token) return;
       if (!(await prepararModalidade(token))) return;
@@ -665,13 +665,13 @@
       preparacao = null;
       proximaVerificacaoExpedicao = agoraAtivo() + 30000;
       reinicioArmado = config.reiniciarAutomaticamente;
-      timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true; status('Caçada iniciada! Vou cuidar dos combates e da recuperação de vigor conforme suas escolhas.');
+      timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true; status('Caçada iniciada. Vou lutar e recuperar o vigor como você escolheu.');
     } catch (e) {
       if (preparacao === token) pausar(e.message, automatico);
       else if (!timer && !preparacao) status(e.message);
     }
   }
-  function fechar() { pausar('Painel oculto e caçada pausada. Clique no ícone da extensão para abrir o painel de novo.'); host.hidden = true; }
+  function fechar() { pausar('Painel fechado e caçada pausada. Clique no ícone da extensão para abrir de novo.'); host.hidden = true; }
   function prepararAtualizacao() {
     if (!timer || !config) return;
     try {
@@ -681,7 +681,7 @@
       }));
       preparacao = null;
       clearInterval(timer); timer = null;
-      status('O jogo vai atualizar. Vou retomar sua caçada assim que a página carregar.');
+      status('O jogo vai atualizar. Vou continuar a caçada quando a página abrir de novo.');
     } catch {
       console.warn('Não foi possível salvar a retomada. Após atualizar o jogo, clique em Iniciar.');
     }
@@ -698,19 +698,19 @@
       (id !== 'duracaoExpedicao' || ['15', '60', '240'].includes(valor))) campo.value = valor;
   }
   ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
-  if (ui('manterExpedicao').checked) statusExpedicao('Expedição automática configurada. Clique em Iniciar para ativar junto com a caçada.');
+  if (ui('manterExpedicao').checked) statusExpedicao('Expedição pronta. Clique em Iniciar para caçar e fazer expedições.');
   // Serializa as gravações para uma edição mais antiga não sobrescrever a última.
   let gravacao = Promise.resolve();
   function salvar() {
     const valores = Object.fromEntries(campos.map(id => [id, ui(id).type === 'checkbox' ? ui(id).checked : ui(id).value]));
     gravacao = gravacao.then(() => chrome.storage.local.set({ aurenPreferenciasV33: valores })).catch(() => {
-      status('Não consegui salvar suas escolhas para a próxima visita. Você ainda pode usá-las nesta página.');
+      status('Não consegui salvar suas escolhas. Elas funcionam agora, mas você pode precisar preenchê-las de novo depois.');
     });
   }
   root.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => {
     ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
-    if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição automática configurada. Clique em Iniciar para ativar.' : 'Manutenção automática desativada. Uma expedição já iniciada continua no jogo.');
-    selecionando = null; pausar('Suas escolhas foram atualizadas. Clique em Iniciar para usá-las.'); salvar();
+    if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição pronta. Clique em Iniciar para começar.' : 'Não vou iniciar novas expedições. A viagem atual continua no jogo.');
+    selecionando = null; pausar('Opções alteradas. Clique em Iniciar para continuar com elas.'); salvar();
   }));
   chrome.runtime.onMessage.addListener((msg, sender, responder) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.origem !== 'auren-popup-v33') return;
@@ -722,15 +722,15 @@
       }
       responder({ ok: true, mensagem: 'Painel aberto. Use Iniciar no painel para executar.' });
     } else if (msg.comando === 'pausar') {
-      pausar('Pausado pelo botão da extensão.');
+      pausar('Caçada pausada pelo botão da extensão.');
       responder({ ok: true, mensagem: 'Automação pausada nesta aba.' });
     }
   });
-  if (erroArmazenamento) status('Não consegui recuperar suas escolhas salvas. Confira os valores do painel antes de começar.');
+  if (erroArmazenamento) status('Não consegui carregar suas escolhas. Confira os campos antes de começar.');
   if (erroNavegacaoInicial) status(erroNavegacaoInicial);
   document.addEventListener('visibilitychange', function oculto() {
     if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
-    if (document.hidden && timer && !config.continuarOculta) pausar('A aba do jogo ficou oculta, então pausei a caçada. Ao voltar, clique em Iniciar para continuar.');
+    if (document.hidden && timer && !config.continuarOculta) pausar('Você saiu da aba do jogo. Pausei a caçada. Clique em Iniciar para continuar.');
   });
   console.info('Auren instalado. Caçada pausada até clicar em Iniciar. API: window.aurenCacada.');
   // Só a atualização acionada pelo bot permite retomar sem clicar em Iniciar.
@@ -749,9 +749,9 @@
       if (['iniciar', 'retomar'].includes(retomada.expedicaoPendente?.acao)) expedicaoPendente = retomada.expedicaoPendente;
       const anterior = retomada.pendente;
       if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = { ...anterior, inicio: agoraAtivo() - Math.max(0, Date.now() - anterior.inicio) };
-      status('Jogo atualizado. Retomando sua caçada com as mesmas escolhas…');
+      status('Jogo atualizado. Continuando a caçada com suas escolhas…');
       iniciar();
     }
-  } catch { status('Não consegui recuperar a caçada anterior. Confira suas escolhas e clique em Iniciar.'); }
+  } catch { status('Não consegui continuar a caçada anterior. Confira as opções e clique em Iniciar.'); }
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 
