@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.27, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.28, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -15,7 +15,7 @@ Extensão Chrome de caçada v3.3.27, com abas de Caçada, Expedição e Pausas, 
 
 - Informe o nome exato da criatura disponível na região aberta.
 - Escolha o vigor mínimo para atacar e o modo de recuperação.
-- Configure os limites da poção de vigor maior e da poção de vigor.
+- Escolha até qual porcentagem de vigor usar a poção comum. Para usar a maior, ative o controle de fadiga.
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
 - Para usar na VPS, marque **Continuar mesmo sem olhar a aba do jogo** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
@@ -30,11 +30,9 @@ As configurações são salvas localmente pela extensão neste perfil do Chrome.
 
 ## Vigor e poções
 
-A leitura prioriza a barra de Vigor da caçada, inclusive quando o cabeçalho mostra uma expedição. A **Poção de vigor** recupera 40 pontos de vigor (40% da barra), e a **Poção de vigor maior** recupera 100 pontos (barra completa). Vigor em zero também permite recuperação, por poções ou regeneração, conforme suas escolhas. Os limites e preferências salvos são preservados: o limite da antiga poção de alívio passa a controlar a poção comum, e o da antiga restauradora passa a controlar a maior.
+A leitura prioriza a barra de Vigor da caçada, inclusive quando o cabeçalho mostra uma expedição. A **Poção de vigor** recupera 40 pontos de vigor. É a única poção escolhida para recuperar vigor, mesmo com o controle de fadiga desligado. Se acabar ou não puder ser usada, o bot espera a regeneração.
 
-Na aba **Caçada**, marque **Usar a poção comum se a maior acabar** para permitir a substituição. Vem desmarcada e fica salva neste perfil. Alterar a opção pausa a automação; clique em **Iniciar** para aplicar.
-
-Quando a decisão for usar a maior, mas seu botão estiver ausente ou indisponível, tenta usar uma única poção comum identificada e habilitada. Se a maior estiver habilitada, ela continua sendo a prioridade. Um botão marcado como ocupado não autoriza substituição. Se a comum também estiver indisponível ou ambígua, espera regenerar. O modo de regeneração e a economia de poções mantêm prioridade. Cada uso da comum aguarda a confirmação de recuperação de 40 pontos antes de reavaliar o vigor; não gasta várias poções de uma vez nem substitui a comum pela maior.
+A **Poção de vigor maior** fica reservada para reduzir a fadiga quando o controle estiver ligado. Ela também enche o vigor, mas vigor baixo sozinho nunca autoriza seu uso. O campo **Usar a poção maior até (%)** e a opção de substituição foram removidos; preferências antigas desses campos são ignoradas. Cada poção usada ainda exige a confirmação do jogo antes da próxima ação.
 
 ## VPS e aba oculta
 
@@ -71,7 +69,7 @@ O vigor e a fadiga são controles diferentes. Com esta opção ligada:
 
 A leitura abre os **Detalhes do Vigor** pela interface do jogo e usa o valor atual da fadiga, não o custo em vigor, a porcentagem da barra, a previsão após a poção ou o total de caçadas do dia. A categoria **Descansado** não é tratada como zero, pois também inclui pontos de fadiga. Quando não encontra uma leitura exata, aguarda sem lutar nem usar poções. Não consulta dados internos do personagem nem faz chamadas diretas às APIs do jogo.
 
-Os campos antigos de limite e substituição da poção maior ficam desativados enquanto este controle estiver ligado. As escolhas são preservadas e voltam a valer se você desligá-lo. As pausas programadas esperam uma poção pendente terminar; após o descanso, a fadiga é conferida de novo antes da próxima ação. Os avisos de verificação e as expedições continuam seguindo suas próprias opções.
+Desligar o controle de fadiga interrompe o uso automático da poção maior. A recuperação de vigor continua usando apenas a comum. As pausas programadas esperam uma poção pendente terminar; após o descanso, a fadiga é conferida de novo antes da próxima ação. Os avisos de verificação e as expedições continuam seguindo suas próprias opções.
 
 ## Fabricar poções maiores
 
@@ -178,11 +176,10 @@ Pausar e Ocultar painel interrompem apenas a caçada. Para interromper também o
 
 Com o controle de fadiga desligado:
 
-Ataque em 80%, poção de vigor maior até 30%, poção de vigor até 70%, economia de 5 pontos:
+Ataque em 80%, poção comum até 70%, economia de 5 pontos:
 
 - Vigor a partir de 80%: atacar.
-- Vigor até 30%: poção de vigor maior.
-- Vigor acima de 30% e até 70%: poção de vigor.
+- Vigor até 70%: poção comum. Se ela acabar, aguarda regeneração.
 - Vigor acima de 70% e abaixo de 80%: aguardar regeneração.
 - A margem de economia e o modo somente regeneração têm prioridade sobre o uso de poções.
 
