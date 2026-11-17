@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.26, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.27, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -67,11 +67,21 @@ O vigor e a fadiga são controles diferentes. Com esta opção ligada:
 - Cada vitória soma 1 de fadiga. Antes de lutar, o bot confere se a próxima vitória alcançaria o limite. Com limite **100**, por exemplo, só luta quando a vitória ainda deixa a fadiga em no máximo **99**. Se estiver em 99, tenta baixar a fadiga primeiro. Limites pequenos podem gastar mais poções maiores.
 - A confirmação da maior depende de a fadiga cair para o valor previsto nos detalhes do jogo. Encher o vigor, sozinho, não libera outro clique. Mantém as regras de espera, erro e retomada, inclusive após a atualização do jogo.
 
-**Limitação do jogo:** a poção maior fica indisponível com vigor cheio. Se isso acontecer, ou se ela acabar, o bot aguarda para não iniciar uma luta que alcance o limite. Se você já estiver muito acima do limite, uma única poção pode não ser suficiente: o bot não faz lutas acima do limite para tentar liberar mais poções. Ajuste o limite ou reduza a fadiga no jogo antes de continuar, se necessário.
+**Limitação do jogo:** a poção maior fica indisponível com vigor cheio. Se isso acontecer, o bot aguarda para não iniciar uma luta que alcance o limite. Quando ela acaba, também aguarda, a menos que você ative a fabricação automática descrita abaixo. Se você já estiver muito acima do limite, uma única poção pode não ser suficiente: o bot não faz lutas acima do limite para tentar liberar mais poções. Ajuste o limite ou reduza a fadiga no jogo antes de continuar, se necessário.
 
 A leitura abre os **Detalhes do Vigor** pela interface do jogo e usa o valor atual da fadiga, não o custo em vigor, a porcentagem da barra, a previsão após a poção ou o total de caçadas do dia. A categoria **Descansado** não é tratada como zero, pois também inclui pontos de fadiga. Quando não encontra uma leitura exata, aguarda sem lutar nem usar poções. Não consulta dados internos do personagem nem faz chamadas diretas às APIs do jogo.
 
 Os campos antigos de limite e substituição da poção maior ficam desativados enquanto este controle estiver ligado. As escolhas são preservadas e voltam a valer se você desligá-lo. As pausas programadas esperam uma poção pendente terminar; após o descanso, a fadiga é conferida de novo antes da próxima ação. Os avisos de verificação e as expedições continuam seguindo suas próprias opções.
+
+## Fabricar poções maiores
+
+Na aba **Caçada**, ative o controle de fadiga e marque **Fabricar poções de vigor maior se necessário**. A escolha fica salva. Quando a fadiga exigir uma poção maior e o estoque estiver zerado, o bot vai à **Oficina**, escolhe **Caldeirão → Poções → Poção de vigor maior** e seleciona **uma unidade**.
+
+Antes de preencher a receita, confere se você tem **1 Garra alfa e 1.900 de ouro**. Só usa esses ingredientes: se a oficina sugerir outra parte de monstro, escolhe a Garra alfa. Preenche, confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada**, marca **Só o resultado** e confere a fadiga. Não compra ingredientes.
+
+**Se faltar Garra alfa ou ouro**, volta à Caçada e ignora o limite de fadiga enquanto não puder fabricar. Continua recuperando vigor só com a poção comum, conforme suas escolhas. Se a fadiga ainda exigir uma poção maior, confere os recursos novamente a cada minuto, entre as ações do jogo. Se receber uma poção maior ou voltar a ter ingredientes, aplica o limite de fadiga de novo. Desmarcar a fabricação automática também encerra essa exceção.
+
+Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada como falta de recursos. Nesses casos o bot espera ou pausa e explica o que precisa ser conferido. Se o jogo não confirmar a fabricação, preserva a ação em espera para não gastar outra Garra alfa nem mais ouro. Pausar e alterar opções interrompem a navegação. As verificações do jogo continuam exigindo sua resposta e não contam no tempo de espera da fabricação.
 
 ## Pausas automáticas
 
@@ -222,3 +232,11 @@ node tests/fadiga.cjs
 ```
 
 Os cenários usam páginas simuladas com o painel de detalhes e o componente de janela do navegador, baseados na interface pública do jogo. Cobrem leitura dos pontos, limite estrito antes da vitória, função de cada poção, falta de estoque, vigor cheio, confirmação e retomada, além de pausas e recargas. Não realizam ações em uma conta real.
+
+## Testes da fabricação
+
+```bash
+node tests/fabricacao.cjs
+```
+
+Usam uma oficina simulada com os controles da interface pública: estoque, receita, quantidade, ingredientes, ouro, confirmação, retorno à caçada, falta de recursos, nova conferência e interrupções. Não gastam recursos de uma conta real.
