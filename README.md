@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.28, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.29, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -75,11 +75,11 @@ Desligar o controle de fadiga interrompe o uso automático da poção maior. A r
 
 Na aba **Caçada**, ative o controle de fadiga e marque **Fabricar poções de vigor maior se necessário**. A escolha fica salva. Quando a fadiga exigir uma poção maior e o estoque estiver zerado, o bot vai à **Oficina**, escolhe **Caldeirão → Poções → Poção de vigor maior** e seleciona **uma unidade**.
 
-Antes de preencher a receita, confere se você tem **1 Garra alfa e 1.900 de ouro**. Só usa esses ingredientes: se a oficina sugerir outra parte de monstro, escolhe a Garra alfa. Preenche, confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada**, marca **Só o resultado** e confere a fadiga. Não compra ingredientes.
+Antes de preencher a receita, confere se você tem **1 Olho de corvo ou 1 Coração de serpente, mais 1.900 de ouro**. Mantém a parte sugerida se ela for uma dessas duas e estiver disponível. Caso contrário, procura a outra opção no seletor de ingredientes. Preenche, confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada**, marca **Só o resultado** e confere a fadiga. Não compra ingredientes.
 
-**Se faltar Garra alfa ou ouro**, volta à Caçada e ignora o limite de fadiga enquanto não puder fabricar. Continua recuperando vigor só com a poção comum, conforme suas escolhas. Se a fadiga ainda exigir uma poção maior, confere os recursos novamente a cada minuto, entre as ações do jogo. Se receber uma poção maior ou voltar a ter ingredientes, aplica o limite de fadiga de novo. Desmarcar a fabricação automática também encerra essa exceção.
+**Se as duas partes estiverem em falta ou não houver ouro suficiente**, volta à Caçada e ignora o limite de fadiga enquanto não puder fabricar. Continua recuperando vigor só com a poção comum, conforme suas escolhas. Se a fadiga ainda exigir uma poção maior, confere os recursos novamente a cada minuto, entre as ações do jogo. Se receber uma poção maior ou voltar a ter ingredientes, aplica o limite de fadiga de novo. Desmarcar a fabricação automática também encerra essa exceção.
 
-Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada como falta de recursos. Nesses casos o bot espera ou pausa e explica o que precisa ser conferido. Se o jogo não confirmar a fabricação, preserva a ação em espera para não gastar outra Garra alfa nem mais ouro. Pausar e alterar opções interrompem a navegação. As verificações do jogo continuam exigindo sua resposta e não contam no tempo de espera da fabricação.
+Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada como falta de recursos. Nesses casos o bot espera ou pausa e explica o que precisa ser conferido. Se o jogo não confirmar a fabricação, preserva a ação em espera para evitar outro gasto de ingredientes e ouro. Pausar e alterar opções interrompem a navegação. As verificações do jogo continuam exigindo sua resposta e não contam no tempo de espera da fabricação.
 
 ## Pausas automáticas
 
