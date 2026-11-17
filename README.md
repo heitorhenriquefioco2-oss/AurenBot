@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.25, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.26, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -55,6 +55,23 @@ Marque **Tentar continuar sozinho após um erro** e clique em **Iniciar** para a
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só o resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
 **Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar mesmo sem olhar a aba do jogo**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+
+## Limite de fadiga
+
+Na aba **Caçada**, marque **Manter a fadiga abaixo do limite** e preencha **Limite de fadiga, em pontos**. A opção vem desligada e fica salva neste perfil do Chrome. Clique em **Iniciar** para aplicar. Use um número inteiro de 2 ou mais; esse valor é uma contagem de pontos, não uma porcentagem de vigor.
+
+O vigor e a fadiga são controles diferentes. Com esta opção ligada:
+
+- Só a **poção comum** é escolhida para recuperar vigor, conforme seu modo de recuperação, vigor mínimo, limite da comum e economia de poções. Se ela acabar, o bot espera; não gasta a maior só para recuperar vigor.
+- A **poção maior** é reservada para baixar a fadiga. No jogo atual, reduz até 15 pontos e também recupera 100 de vigor. Ela pode ser usada para fadiga mesmo se você escolheu esperar o vigor voltar sozinho.
+- Cada vitória soma 1 de fadiga. Antes de lutar, o bot confere se a próxima vitória alcançaria o limite. Com limite **100**, por exemplo, só luta quando a vitória ainda deixa a fadiga em no máximo **99**. Se estiver em 99, tenta baixar a fadiga primeiro. Limites pequenos podem gastar mais poções maiores.
+- A confirmação da maior depende de a fadiga cair para o valor previsto nos detalhes do jogo. Encher o vigor, sozinho, não libera outro clique. Mantém as regras de espera, erro e retomada, inclusive após a atualização do jogo.
+
+**Limitação do jogo:** a poção maior fica indisponível com vigor cheio. Se isso acontecer, ou se ela acabar, o bot aguarda para não iniciar uma luta que alcance o limite. Se você já estiver muito acima do limite, uma única poção pode não ser suficiente: o bot não faz lutas acima do limite para tentar liberar mais poções. Ajuste o limite ou reduza a fadiga no jogo antes de continuar, se necessário.
+
+A leitura abre os **Detalhes do Vigor** pela interface do jogo e usa o valor atual da fadiga, não o custo em vigor, a porcentagem da barra, a previsão após a poção ou o total de caçadas do dia. A categoria **Descansado** não é tratada como zero, pois também inclui pontos de fadiga. Quando não encontra uma leitura exata, aguarda sem lutar nem usar poções. Não consulta dados internos do personagem nem faz chamadas diretas às APIs do jogo.
+
+Os campos antigos de limite e substituição da poção maior ficam desativados enquanto este controle estiver ligado. As escolhas são preservadas e voltam a valer se você desligá-lo. As pausas programadas esperam uma poção pendente terminar; após o descanso, a fadiga é conferida de novo antes da próxima ação. Os avisos de verificação e as expedições continuam seguindo suas próprias opções.
 
 ## Pausas automáticas
 
@@ -149,6 +166,8 @@ Pausar e Ocultar painel interrompem apenas a caçada. Para interromper também o
 
 ## Exemplo
 
+Com o controle de fadiga desligado:
+
 Ataque em 80%, poção de vigor maior até 30%, poção de vigor até 70%, economia de 5 pontos:
 
 - Vigor a partir de 80%: atacar.
@@ -193,3 +212,13 @@ node tests/pausas-expedicao.cjs
 ```
 
 Para executar um cenário específico do primeiro arquivo, informe `TEST_FILTER` com parte do nome do teste.
+
+## Testes do controle de fadiga
+
+Com a mesma instalação de Playwright dos testes anteriores:
+
+```bash
+node tests/fadiga.cjs
+```
+
+Os cenários usam páginas simuladas com o painel de detalhes e o componente de janela do navegador, baseados na interface pública do jogo. Cobrem leitura dos pontos, limite estrito antes da vitória, função de cada poção, falta de estoque, vigor cheio, confirmação e retomada, além de pausas e recargas. Não realizam ações em uma conta real.
