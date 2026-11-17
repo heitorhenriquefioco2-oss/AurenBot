@@ -17,6 +17,11 @@ const root=path.join(__dirname,'..');
     document.querySelector('progress').value=g.hp;
     document.getElementById('minor').disabled=g.minor===0||g.hp>=100;document.getElementById('major').disabled=g.major===0||g.hp>=100||g.flags.majorDisabled;
     document.getElementById('major').title=g.hp>=100?'Seu Vigor já está completo':g.major===0?'Sem poções na mochila':'Poção de vigor maior';
+    for(const id of ['minor','major']){
+     const botao=document.getElementById(id);
+     botao.querySelector('.hunt-potion-quantity')?.remove();
+     botao.insertAdjacentHTML('beforeend',`<span class="hunt-potion-quantity">×${g[id]}</span>`);
+    }
     card.innerHTML=`<div role="img" aria-label="Fadiga: ${g.f>=300?'Exausto':g.f>=100?'Cansado':'Descansado'}"><div class="hunt-fatigue-heading"><strong>Fadiga</strong><span>${g.f>=100?'Cansado':'Descansado'}</span></div><div class="hunt-fatigue-track" style="--hunt-fatigue-current:${g.f===0?0:Math.max(.01,g.f/Math.max(200,g.f+480)*100)}%"></div></div>${g.f>0?`<div class="hunt-fatigue-preview"><span class="hunt-fatigue-relief">−${fmt(g.f-after)} com a poção maior</span><strong><span aria-hidden="true">${fmt(g.f)} → ${fmt(after)}</span><span class="realm-sr-only">Fadiga de ${fmt(g.f)} para ${fmt(after)}</span></strong></div>`:''}<small class="hunt-fatigue-cost">Custo deste alvo segue em 29 de Vigor</small>`;
    };
    window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();};document.body.append(r);};
@@ -45,6 +50,17 @@ const root=path.join(__dirname,'..');
  await test('maior esgotada não é substituída pela comum para baixar fadiga',async t=>{await t.start();await t.tick(15000);assert.equal((await t.counts()).major,0);assert.equal((await t.counts()).minor,0);assert.equal((await t.counts()).attack,0);assert.match(await t.status(),/não está disponível/);},{f:99,major:0,prefs:{substituirMaior:true}});
  await test('sem poção comum não gasta maior só para recuperar vigor',async t=>{await t.start();await t.tick(8800);assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});},{f:40,hp:20,minor:0});
  await test('vigor cheio espera a maior ficar disponível sem fazer luta fora do limite',async t=>{await t.start();await t.tick(8800);assert.equal((await t.counts()).attack,0);assert.equal((await t.counts()).major,0);assert.match(await t.status(),/vigor está cheio/);},{f:99,hp:100});
+ await test('sem comum, uma luta libera a maior com vigor cheio e fadiga abaixo do limite',async t=>{
+  await t.start();await t.tick(2200);
+  assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
+  await t.tick(6600);
+  assert.deepEqual(await t.counts(),{attack:1,major:1,minor:0,close:1});
+  assert.equal(await t.p.evaluate(()=>game.f),85);
+ },{f:99,hp:100,minor:0,major:1,flags:{autoResult:true}});
+ for(const fields of [{f:100,major:1},{f:99,major:0}])await test('vigor cheio não libera luta sem margem ou sem poção maior '+JSON.stringify(fields),async t=>{
+  await t.start();await t.tick(8800);
+  assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});
+ },{...fields,hp:100,minor:0});
  await test('uma redução insuficiente mantém o limite sem gastar outras poções ou atacar',async t=>{await t.start();await t.tick(15000);assert.equal((await t.counts()).major,1);assert.equal((await t.counts()).minor,0);assert.equal((await t.counts()).attack,0);assert.equal(await t.p.evaluate(()=>game.f),135);},{f:150,hp:60});
  await test('fadiga zerada usa a barra de fadiga, não a contagem diária',async t=>{await t.open();assert.equal((await t.diag()).fadiga,0);await t.start();await t.tick(2200);assert.equal((await t.counts()).minor,1);assert.equal((await t.counts()).major,0);},{f:0,hp:20});
  await test('categoria Descansado não é confundida com zero',async t=>{await t.open();assert.equal((await t.diag()).fadiga,45);},{f:45});
