@@ -44,7 +44,11 @@
     if (!Number.isFinite(hp) || hp < 0 || hp > 100) return 'pausar';
     if (c.controlarFadiga && !ignorarFadiga) {
       if (!Number.isSafeInteger(fadiga) || fadiga < 0) return 'aguardarFadiga';
-      if (fadiga + 1 >= c.limiteFadiga) return 'reduzirFadiga';
+      if (fadiga + 1 >= c.limiteFadiga) {
+        const aproveitar = c.aproveitarMaior && hp >= 30 && hp > c.vigorMaior &&
+          fadiga + 1 <= c.limiteFadiga + c.folgaFadiga;
+        return aproveitar ? 'atacar' : 'reduzirFadiga';
+      }
     }
     if (hp >= c.atacar) return 'atacar';
     if (c.modo === 'natural' || (c.economizar && c.atacar - hp <= c.margem + 1e-9)) return 'regenerar';
@@ -582,7 +586,7 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.36</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.37</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
     <nav role="tablist" aria-label="Opções de caçada, expedição, extras e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabBoss" role="tab" aria-selected="false" aria-controls="abaBoss" tabindex="-1">Extras</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
@@ -597,7 +601,11 @@
     <small>Exemplo: se você caça com 80% e escolhe 5, o bot espera o vigor subir de 75% para 80% sem gastar poção. Essa espera vale para recuperar vigor. Se o controle de fadiga estiver ligado, o limite de fadiga vem primeiro.</small>
     <label><input id="controlarFadiga" type="checkbox"> Manter a fadiga abaixo do limite</label>
     <label>Limite de fadiga, em pontos<input id="limiteFadiga" type="text" inputmode="numeric" value="100" disabled></label>
-    <small>Use um número inteiro de 2 ou mais. Cada vitória soma 1 ponto. Limites menores podem gastar mais poções maiores. O bot usa a poção maior antes que a próxima vitória chegue ao limite. Exemplo: limite 100 significa ficar em até 99 pontos.</small>
+    <label><input id="aproveitarMaior" type="checkbox" disabled> Gastar mais vigor antes de usar a poção maior</label>
+    <label>Fadiga extra permitida, em pontos<input id="folgaFadiga" type="text" inputmode="numeric" value="5" disabled></label>
+    <label>Usar a maior quando o vigor chegar a (%)<input id="vigorMaior" type="text" inputmode="decimal" value="30" disabled></label>
+    <small>Com esta opção ligada, ao atingir o limite de fadiga continua caçando para aproveitar a recuperação da maior, mesmo abaixo do vigor mínimo habitual. Usa a maior quando o vigor chega ao valor escolhido, fica abaixo de 30% ou a próxima vitória ultrapassaria a margem de fadiga. Exemplo: limite 100 e margem 5 permitem chegar a 105 pontos.</small>
+    <small>Use um número inteiro de 2 ou mais. Cada vitória soma 1 ponto. Sem a opção de gastar mais vigor, usa a maior antes que a próxima vitória chegue ao limite. Exemplo: limite 100 significa ficar em até 99 pontos.</small>
     <p>Só a poção comum é escolhida para recuperar vigor. Com este controle ligado, a maior é usada para baixar a fadiga, mesmo se você escolheu esperar o vigor voltar sozinho. Ela também enche o vigor.</p>
     <small>O bot abre os detalhes do Vigor para conferir a fadiga. Com vigor cheio e a poção maior indisponível, faz uma caçada para gastar vigor, mesmo se a fadiga já estiver no limite. Após o resultado, volta a conferir a fadiga. Se a maior acabar, só tenta fabricá-la quando a opção abaixo estiver marcada.</small>
     <label><input id="fabricarMaior" type="checkbox" disabled> Fabricar poções de vigor maior se necessário</label>
@@ -757,11 +765,21 @@
     c.controlarFadiga = ui('controlarFadiga').checked;
     c.bossDestino = ui('bossDestino').value;
     c.fabricarMaior = c.controlarFadiga && ui('fabricarMaior').checked;
+    c.aproveitarMaior = c.controlarFadiga && ui('aproveitarMaior').checked;
+    c.folgaFadiga = 0;
+    c.vigorMaior = null;
     c.limiteFadiga = null;
     if (c.controlarFadiga) {
       const valor = ui('limiteFadiga').value.trim();
       if (!/^\d+$/.test(valor) || !Number.isSafeInteger(Number(valor)) || Number(valor) < 2) throw Error('Limite de fadiga: digite um número inteiro de 2 ou mais. Cada vitória soma 1 ponto.');
       c.limiteFadiga = Number(valor);
+    }
+    if (c.aproveitarMaior) {
+      const folga = ui('folgaFadiga').value.trim();
+      if (!/^\d+$/.test(folga) || !Number.isSafeInteger(Number(folga)) ||
+          !Number.isSafeInteger(c.limiteFadiga + Number(folga))) throw Error('Fadiga extra: digite um número inteiro de 0 ou mais, dentro do limite numérico.');
+      c.folgaFadiga = Number(folga);
+      c.vigorMaior = percentual(ui('vigorMaior').value, 'Vigor para usar a maior');
     }
     c.pausasAleatorias = ui('pausasAleatorias').checked;
     for (const [id, nome] of [['intervaloPausaMin','Tempo mínimo antes de pausar'], ['intervaloPausaMax','Tempo máximo antes de pausar'], ['duracaoPausaMin','Descanso mínimo'], ['duracaoPausaMax','Descanso máximo']]) {
@@ -938,7 +956,8 @@
       `Botão para caçar: ${encontrado(botaoAtacar())}.`,
       `Poção de vigor: ${encontrado(botaoPocao('alivio'))}.`,
       `Poção de vigor maior: ${encontrado(botaoPocao('restauradora'))}.`,
-      `Fadiga: ${!c.controlarFadiga ? 'controle desligado' : fadiga ? `${fadiga.atual} pontos; limite abaixo de ${c.limiteFadiga}` : 'abra os detalhes do Vigor no jogo para ver o valor'}.`,
+      `Fadiga: ${!c.controlarFadiga ? 'controle desligado' : fadiga ? `${fadiga.atual} pontos; limite configurado ${c.limiteFadiga}` : 'abra os detalhes do Vigor no jogo para ver o valor'}.`,
+      c.aproveitarMaior ? `Aproveitar a maior: até ${c.limiteFadiga + c.folgaFadiga} de fadiga; usar quando o vigor chegar a ${c.vigorMaior}% ou não puder caçar com a margem.` : 'Aproveitar a maior: desligado.',
       `Expedições: ${c.manterExpedicao ? `ligada, tempo das próximas viagens: ${c.duracaoExpedicao} minutos` : 'desativada'}.`,
       `Pausas: ${c.pausasAleatorias ? 'ligadas' : 'desligadas'}.`,
       pendente ? descreverPendencia() : 'Esta consulta não iniciou lutas nem usou poções.'
@@ -1115,7 +1134,7 @@
   window.aurenCacada = api;
   ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['bossDestino', 'criatura', 'modo', 'atacar', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao', 'pausasAleatorias', 'intervaloPausaMin', 'intervaloPausaMax', 'duracaoPausaMin', 'duracaoPausaMax', 'controlarFadiga', 'limiteFadiga', 'fabricarMaior'];
+  const campos = ['bossDestino', 'criatura', 'modo', 'atacar', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao', 'pausasAleatorias', 'intervaloPausaMin', 'intervaloPausaMax', 'duracaoPausaMin', 'duracaoPausaMax', 'controlarFadiga', 'limiteFadiga', 'fabricarMaior', 'aproveitarMaior', 'folgaFadiga', 'vigorMaior'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }
@@ -1127,6 +1146,8 @@
     for (const id of ['intervaloPausaMin','intervaloPausaMax','duracaoPausaMin','duracaoPausaMax']) ui(id).disabled = !ui('pausasAleatorias').checked;
     ui('fabricarMaior').disabled = !ui('controlarFadiga').checked;
     ui('limiteFadiga').disabled = !ui('controlarFadiga').checked;
+    ui('aproveitarMaior').disabled = !ui('controlarFadiga').checked;
+    for (const id of ['folgaFadiga','vigorMaior']) ui(id).disabled = !ui('controlarFadiga').checked || !ui('aproveitarMaior').checked;
   }
   atualizarCampos(); atualizarStatusPausas();
   if (ui('manterExpedicao').checked) statusExpedicao('Expedição pronta. Clique em Iniciar para caçar e fazer expedições.');

@@ -29,7 +29,7 @@ const root=path.join(__dirname,'..');
     const id=e.target.closest('button')?.id,g=game;
     if(id==='closeInfo')document.getElementById('details').hidePopover();
     if(id==='minor'){g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
-    if(id==='major'){g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
+    if(id==='major'){(g.usosMaior??=[]).push({hp:g.hp,f:g.f});g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
     if(id==='attack'){g.counts.attack++;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
    });});
   },options);
@@ -83,6 +83,49 @@ const root=path.join(__dirname,'..');
  await test('sem comum e sem controle de fadiga espera sem gastar a maior',async t=>{await t.start();await t.tick(8800);assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});},{hp:20,minor:0,prefs:{controlarFadiga:false}});
  await test('preferência antiga inválida da maior não bloqueia a recuperação comum',async t=>{await t.start();await t.tick(2200);assert.equal((await t.counts()).minor,1);assert.equal((await t.counts()).major,0);},{hp:20,prefs:{controlarFadiga:false,limite:'inválido'}});
  await test('fadiga alta com controle desligado não usa a maior para vigor nem fadiga',async t=>{await t.start();await t.tick(2200);assert.equal((await t.counts()).major,0);assert.equal((await t.counts()).minor,1);},{f:500,hp:20,prefs:{controlarFadiga:false}});
+ const aproveitar={aproveitarMaior:true,folgaFadiga:'5',vigorMaior:'30'};
+ await test('aproveita vigor antes da maior mesmo abaixo do mínimo habitual de caçar',async t=>{
+  await t.start();await t.tick(2200);
+  assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
+ },{f:100,hp:71,prefs:aproveitar});
+ await test('usa maior com vigor baixo após três caçadas e mantém margem configurada',async t=>{
+  await t.start();await t.tick(26000);
+  const g=await t.p.evaluate(()=>game);
+  assert.deepEqual(g.usosMaior,[{hp:13,f:102}]);
+  assert.equal(g.counts.minor,0);
+  assert.ok(g.maxF<=105);
+ },{f:99,hp:100,flags:{autoResult:true},prefs:aproveitar});
+ for(const [f,hp,acao] of [[104,71,'attack'],[105,71,'major'],[100,30,'major'],[100,29,'major'],[100,31,'attack']]) {
+  await test('respeita fronteira da margem e vigor '+JSON.stringify({f,hp}),async t=>{
+   await t.start();await t.tick(2200);
+   assert.equal((await t.counts())[acao],1);
+   assert.equal((await t.counts()).minor,0);
+  },{f,hp,prefs:aproveitar});
+ }
+ await test('opção desligada mantém uso da maior no limite original',async t=>{
+  await t.start();await t.tick(2200);
+  assert.equal((await t.counts()).major,1);assert.equal((await t.counts()).attack,0);
+ },{f:99,hp:71,prefs:{...aproveitar,aproveitarMaior:false}});
+ await test('configurações da margem ficam salvas e desativam junto com a fadiga',async t=>{
+  await t.p.locator('#aproveitarMaior').check();
+  await t.p.locator('#folgaFadiga').fill('7');
+  await t.p.locator('#vigorMaior').fill('40');
+  await t.p.reload();await t.load();
+  assert.equal(await t.p.locator('#aproveitarMaior').isChecked(),true);
+  assert.equal(await t.p.locator('#folgaFadiga').inputValue(),'7');
+  assert.equal(await t.p.locator('#vigorMaior').inputValue(),'40');
+  await t.p.locator('#controlarFadiga').uncheck();
+  assert.equal(await t.p.locator('#aproveitarMaior').isDisabled(),true);
+  assert.equal(await t.p.locator('#folgaFadiga').isDisabled(),true);
+ });
+ for(const folgaFadiga of ['-1','1.5','', '9007199254740992'])await test('recusa margem de fadiga inválida '+JSON.stringify(folgaFadiga),async t=>{
+  await t.start();assert.match(await t.status(),/Fadiga extra/);
+  assert.equal((await t.counts()).attack,0);assert.equal((await t.counts()).major,0);
+ },{f:99,prefs:{...aproveitar,folgaFadiga}});
+ await test('controle desligado ignora campos antigos ou inválidos da margem',async t=>{
+  await t.start();await t.tick(2200);
+  assert.equal((await t.counts()).minor,1);assert.equal((await t.counts()).major,0);
+ },{f:100,hp:20,prefs:{...aproveitar,controlarFadiga:false,folgaFadiga:'bad',vigorMaior:'bad'}});
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

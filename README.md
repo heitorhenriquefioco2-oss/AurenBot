@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.36, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.37, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -65,7 +65,11 @@ O vigor e a fadiga são controles diferentes. Com esta opção ligada:
 - Cada vitória soma 1 de fadiga. Em condições normais, antes de lutar, o bot confere se a próxima vitória alcançaria o limite. Com limite **100**, por exemplo, só luta quando a vitória ainda deixa a fadiga em no máximo **99**. Se estiver em 99, tenta baixar a fadiga primeiro. Limites pequenos podem gastar mais poções maiores.
 - A confirmação da maior depende de a fadiga cair para o valor previsto nos detalhes do jogo. Encher o vigor, sozinho, não libera outro clique. Mantém as regras de espera, erro e retomada, inclusive após a atualização do jogo.
 
-**Vigor cheio:** se a fadiga exigir a poção maior e ela estiver indisponível com 100% de vigor, o bot faz uma caçada para gastar vigor. Isso vale com ou sem poções em estoque e mesmo se a fadiga já estiver no limite ou acima dele. Depois do resultado, o bot volta a aplicar o controle de fadiga e usa a maior se estiver disponível. Se a maior acabou, tenta fabricá-la quando a opção abaixo estiver marcada.
+Para aproveitar melhor a recuperação de vigor da maior, ative **Gastar mais vigor antes de usar a poção maior**. A opção vem desmarcada. Configure a **Fadiga extra permitida** (padrão **5 pontos**) e o **Vigor para usar a maior** (padrão **30%**). Ao alcançar o limite normal, continua caçando enquanto o vigor estiver acima desse percentual, houver pelo menos 30% para lutar e a próxima vitória couber na margem. Nesse período, pode caçar abaixo do vigor mínimo habitual e prioriza a maior quando precisar recuperar.
+
+Com limite **100**, margem **5** e vigor **30%**, por exemplo, pode chegar a **105 de fadiga** para gastar mais vigor. Usa a maior quando o vigor chegar a 30%, ficar insuficiente para continuar ou a próxima vitória exceder 105. Após a redução confirmada, reavalia as condições. Os valores ficam salvos neste perfil. Desligar o controle de fadiga desativa também esse aproveitamento.
+
+**Vigor cheio:** se a fadiga exigir a poção maior e ela estiver indisponível com 100% de vigor, o bot faz uma caçada para gastar vigor. Isso vale com ou sem poções em estoque e mesmo se a fadiga já estiver no limite ou acima dele, incluindo a margem extra. Depois do resultado, o bot volta a aplicar o controle de fadiga e usa a maior se estiver disponível. Se a maior acabou, tenta fabricá-la quando a opção abaixo estiver marcada.
 
 A leitura abre os **Detalhes do Vigor** pela interface do jogo e usa o valor atual da fadiga, não o custo em vigor, a porcentagem da barra, a previsão após a poção ou o total de caçadas do dia. A categoria **Descansado** não é tratada como zero, pois também inclui pontos de fadiga. Quando não encontra uma leitura exata, aguarda sem lutar nem usar poções. Não consulta dados internos do personagem nem faz chamadas diretas às APIs do jogo.
 
