@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.35, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.36, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -36,9 +36,9 @@ A **Poção de vigor maior** fica reservada para reduzir a fadiga quando o contr
 
 ## VPS e aba oculta
 
-A opção **Continuar mesmo sem olhar a aba do jogo** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém o ciclo quando o navegador informa que a aba ficou oculta, inclusive se isso acontecer ao minimizar a janela ou desconectar o RDP. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
+A opção **Continuar mesmo sem olhar a aba do jogo** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém a caçada e os extras quando a aba fica oculta, inclusive ao minimizar a janela ou desconectar o RDP. A extensão mantém as atualizações da interface do jogo e usa um alarme do Chrome a cada 30 segundos para acompanhar as ações mesmo quando os temporizadores da aba atrasam. Enquanto houver uma automação autorizada, protege essa aba contra descarte automático e restaura a configuração anterior ao parar. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
 
-O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. O navegador ainda pode reduzir a frequência dos ciclos, congelar ou descartar a aba em segundo plano; esta opção apenas desativa a pausa por visibilidade e não impede essas limitações. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
+O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. Os pulsos em segundo plano podem ser atrasados pelo Chrome; o intervalo nominal de 2,2 segundos da aba visível não é garantido com a janela minimizada. Na aba oculta, os prazos de navegação e confirmação passam para pelo menos dois minutos para acomodar esses atrasos. A extensão requer Chrome 120 ou mais recente. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
 
 ## Falhas temporárias na leitura do vigor
 
@@ -258,3 +258,12 @@ node tests/boss-cacada.cjs
 ```
 
 Usam os componentes visíveis do Boss em uma página simulada. Cobrem maior dano disponível, recargas, intervalo de 15 minutos, estado e vida do Boss, erros, verificações, pausa e persistência da confirmação. A integração do menu com a caçada também é verificada em `tests/fabricacao.cjs`.
+
+## Testes de segundo plano
+
+```bash
+node --test tests/segundo-plano-background.cjs
+node tests/segundo-plano.cjs
+```
+
+Verificam o alarme do service worker, autorização por aba, proteção contra descarte e restauração ao parar. O teste de interface usa uma janela de Chrome minimizada, mundos JavaScript separados para página e extensão e temporizadores de ciclo desativados. Se o ambiente de automação conservar a visibilidade emulada, simula o estado oculto e informa isso no resultado. A página do jogo é simulada.

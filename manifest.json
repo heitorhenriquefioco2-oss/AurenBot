@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Auren — Caçada v3.3.35",
-  "version": "3.3.35",
+  "name": "Auren — Caçada v3.3.36",
+  "version": "3.3.36",
   "description": "Caça, recupera o vigor e avisa quando o jogo precisa da sua resposta.",
   "permissions": [
-    "storage"
+    "storage",
+    "alarms"
   ],
+  "minimum_chrome_version": "120",
   "optional_host_permissions": [
     "http://*/*",
     "https://*/*"
@@ -18,6 +20,12 @@
     "default_title": "Auren — Caçada"
   },
   "content_scripts": [
+    {
+      "matches": ["https://auren-online.com/*", "https://www.auren-online.com/*"],
+      "js": ["pagina-segundo-plano.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "https://auren-online.com/*",
@@ -34,6 +42,7 @@
         "https://www.auren-online.com/*"
       ],
       "js": [
+        "segundo-plano.js",
         "content.js",
         "boss.js"
       ],

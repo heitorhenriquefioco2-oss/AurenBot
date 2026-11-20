@@ -11,6 +11,7 @@ chrome.action.onClicked.addListener(async tab => {
 });
 
 importScripts('notificacoes-config.js');
+importScripts('segundo-plano-background.js');
 
 async function enviarReceptor(perfil, msg) {
   const destino = aurenConfigNotificacoes.validarPerfil(perfil);

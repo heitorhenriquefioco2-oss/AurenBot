@@ -27,6 +27,7 @@
   const informar = text => { if (root) root.getElementById('statusBoss').textContent = text; };
   function pausar(text = 'Boss pausado. Clique em Iniciar Boss para continuar.') {
     clearInterval(timer); timer = null;
+    window.aurenSegundoPlano?.remover('boss');
     if (root) root.getElementById('iniciarBoss').disabled = false;
     encerrarVisita(text);
   }
@@ -51,7 +52,7 @@
     return true;
   }
   function abrirCombate() {
-    if (Date.now() - inicioNavegacao > 15000) {
+    if (Date.now() - inicioNavegacao > (window.aurenSegundoPlano?.prazo(15000) ?? 15000)) {
       encerrarVisita('Não consegui abrir o combate. Vou conferir novamente em 1 minuto.'); return;
     }
     const destino = root.getElementById('bossDestino')?.value || 'auto';
@@ -117,7 +118,7 @@
         if (boss === estado.boss && ataques !== null && ataques > estado.ataques) {
           salvar(tipo, {...estado, pendente:false});
           encerrarVisita('Investida confirmada. A caçada pode continuar enquanto aguardo o próximo ataque.', recarga ? esperaRecarga : 15*60000);
-        } else if (Date.now() - estado.enviadoEm > 45000) {
+        } else if (Date.now() - estado.enviadoEm > (window.aurenSegundoPlano?.prazo(45000) ?? 45000)) {
           pausar('O jogo ainda não confirmou a investida. Confira suas investidas na tela Boss antes de continuar.');
         } else informar('Aguardando a confirmação da investida…');
         return;
@@ -152,10 +153,14 @@
     proximaConsulta = 0; tipoAcompanhado = null;
     navegou = false;
     timer = setInterval(ciclo, 2200);
+    window.aurenSegundoPlano?.registrar('boss',ciclo);
     root.getElementById('iniciarBoss').disabled = true;
     ciclo();
   }
   window.aurenBoss = {iniciar, pausar, ativo:()=>!!timer, temPendente:()=>Object.values(estados).some(estado=>estado.pendente)};
+  document.addEventListener('visibilitychange',()=>{
+    if (timer && document.hidden && !root.getElementById('continuarOculta').checked) pausar('Você saiu da aba do jogo. Boss pausado.');
+  });
   // O painel principal aguarda o jogo carregar antes de criar seus controles.
   const conectar = () => {
     root = document.getElementById('auren-cacada-v3')?.shadowRoot;
