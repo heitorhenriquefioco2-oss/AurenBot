@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.33, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.34, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -81,13 +81,13 @@ Antes de preencher a receita, confere se você tem **1 Olho de corvo ou 1 Coraç
 
 Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada como falta de recursos. Nesses casos o bot espera ou pausa e explica o que precisa ser conferido. Se o jogo não confirmar a fabricação, preserva a ação em espera para evitar outro gasto de ingredientes e ouro. Pausar e alterar opções interrompem a navegação. As verificações do jogo continuam exigindo sua resposta e não contam no tempo de espera da fabricação.
 
-## Boss do servidor
+## Boss da guilda e do mundo
 
-Abra a aba **Boss** do painel e clique em **Iniciar Boss**. O bot pausa a caçada e abre a tela Boss do jogo. As configurações de criatura e vigor da caçada não são necessárias para este modo.
+Abra a aba **Boss** do painel e escolha **Boss da tela atual**, **Boss da guilda** ou **Boss do mundo**. Para a guilda, abra **Guildas → Boss** no jogo e clique em **Iniciar Boss**. A opção da tela atual reconhece os dois tipos automaticamente. Se estiver fora de um combate, essa opção abre o Boss do mundo. O bot pausa a caçada para acompanhar o combate. As configurações de criatura e vigor da caçada não são necessárias para este modo.
 
 Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita o limite de **8 ataques por pessoa em cada encontro**, contando também as investidas feitas manualmente, e o intervalo de **15 minutos**. Confere a vida, o estado do encontro e o botão de ataque liberado pelo jogo. Ao atingir 8 investidas, acompanha a tela aguardando o próximo encontro. Durante o acompanhamento, mantenha a tela Boss aberta.
 
-Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
+Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Na guilda, lê a indicação como **3/8 investidas usadas** e o relógio de **Próximo ataque em**. Os registros de confirmação e intervalo da guilda e do mundo são independentes. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
 
 **Pausar Boss**, **Pausar**, **Ocultar painel** e alterações nas configurações interrompem o modo. A preferência **Continuar mesmo sem olhar a aba do jogo** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. O botão **Iniciar** geral inicia a caçada. Expedições e pausas sorteadas são configuradas para a caçada.
 

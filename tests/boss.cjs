@@ -17,28 +17,31 @@ const root = path.join(__dirname, '..');
       window.game = {attacks:0, clicks:[], cooldown:false, active:true, hp:10000, used:[], selected:'basic', ...options};
       const host = document.createElement('div');
       host.id = 'auren-cacada-v3';
-      host.attachShadow({mode:'open'}).innerHTML = '<button id="iniciarBoss">Iniciar Boss</button><button id="pausarBoss">Pausar Boss</button><input id="continuarOculta" type="checkbox" checked><output id="statusBoss"></output>';
+      host.attachShadow({mode:'open'}).innerHTML = '<select id="bossDestino"><option value="auto">Tela atual</option><option value="guilda">Guilda</option><option value="mundo">Mundo</option></select><button id="iniciarBoss">Iniciar Boss</button><button id="pausarBoss">Pausar Boss</button><input id="continuarOculta" type="checkbox" checked><output id="statusBoss"></output>';
+      host.shadowRoot.getElementById('bossDestino').value=options.destino||'auto';
       document.body.append(host);
       window.aurenCacada = {ocupado:()=>!!game.occupied, pausar:()=>{game.huntPaused=true;window.aurenBoss?.pausar();}};
       window.aurenAvisos = {verificar:()=>false, verificacaoHumana:false};
       window.render = ()=>{
-        document.querySelector('main').innerHTML = `<div class="world-boss-screen">
-          <span class="world-boss-status-${game.active?'active':'defeated'}">Estado</span><h2 id="world-boss-name">Gorath</h2>
+        document.querySelector('main').innerHTML = `<div class="world-boss-screen ${game.guild?'guild-boss-screen':''}">
+          ${game.guild ? '<div class="world-boss-identity"><h3 id="guild-boss-name">Gorath</h3><span>'+ (game.active?'Em combate':'O boss escapou')+'</span></div>' : '<span class="world-boss-status-'+(game.active?'active':'defeated')+'">Estado</span><h2 id="world-boss-name">Gorath</h2>'}
           <div class="world-boss-life-track" role="progressbar" aria-valuenow="${game.hp}"></div>
-          <div class="world-boss-personal"><div><span>Suas investidas</span><strong>${game.attacks}</strong></div></div>
+          ${game.guild?'':'<div class="world-boss-personal"><div><span>Suas investidas</span><strong>'+game.attacks+'</strong></div></div>'}
           ${game.error?'<div class="world-boss-error" role="alert">Falha ao atualizar</div>':''}
-          ${game.cooldown?'<p class="world-boss-cooldown">Próximo ataque em <strong>15:00</strong></p>':''}
+          <section class="world-boss-assault">
+          ${game.guild?'<h3>Sua investida</h3><p>'+game.attacks+'/8 investidas usadas</p>':''}
+          ${game.cooldown?(game.guild?'<div class="guild-countdown guild-countdown-recharge" data-state="active" aria-label="Próximo ataque em"><time>09:16</time></div>':'<p class="world-boss-cooldown">Próximo ataque em <strong>15:00</strong></p>'):''}
           <fieldset class="world-boss-attacks" ${game.fieldsetDisabled?'disabled':''}>
             ${[['basic','Ataque simples',100],['fire','Fogo',1200],['ice','Gelo',800]].map(([id,name,damage])=>`
             <label class="world-boss-attack-option ${game.used.includes(id)?'is-used':''}">
-              <input type="radio" name="world-boss-attack" value="${id}" ${game.selected===id?'checked':''} ${game.used.includes(id)?'disabled':''}>
+              <input type="radio" name="${game.guild?'guild':'world'}-boss-attack" value="${id}" ${game.selected===id?'checked':''} ${game.used.includes(id)?'disabled':''}>
               <span><strong>${name}</strong><small>Disponível</small></span><b>${damage.toLocaleString('pt-BR')}<small>dano</small></b>
             </label>`).join('')}
           </fieldset>
-          <button class="world-boss-strike" ${game.cooldown?'disabled':''}>Atacar boss</button></div>`;
+          <button class="world-boss-strike" ${game.cooldown?'disabled':''}>Atacar boss</button></section></div>`;
       };
       document.getElementById('bossNav').onclick = render;
-      document.addEventListener('change', event=>{if(event.target.name==='world-boss-attack'){game.selected=event.target.value;render();}});
+      document.addEventListener('change', event=>{if(['world-boss-attack','guild-boss-attack'].includes(event.target.name)){game.selected=event.target.value;render();}});
       document.addEventListener('click', event=>{
         if (!event.target.closest('.world-boss-strike')) return;
         game.clicks.push(game.selected);
@@ -118,7 +121,7 @@ const root = path.join(__dirname, '..');
       await t.start();await t.tick(50000);
       assert.equal(await t.page.evaluate(()=>aurenBoss.ativo()),false);
       await t.start();await t.tick(6600);assert.deepEqual((await t.game()).clicks,['fire']);
-      assert.equal(await t.page.evaluate(()=>JSON.parse(sessionStorage.getItem('aurenBossInvestidaV1')).pendente),true);
+      assert.equal(await t.page.evaluate(()=>JSON.parse(sessionStorage.getItem('aurenBossInvestidasV2')).mundo.pendente),true);
     },{noConfirm:true});
     await test('pausa antes do clique impede ataque',async t=>{
       await t.start();await t.page.evaluate(()=>aurenBoss.pausar());
@@ -142,6 +145,65 @@ const root = path.join(__dirname, '..');
       assert.deepEqual((await t.game()).clicks,[]);
       assert.match(await t.status(),/comparar o dano/);
     });
+    await test('guilda: reconhece combate e escolhe o maior dano com 3 de 8 usadas',async t=>{
+      await t.start();await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      assert.equal((await t.game()).attacks,4);
+      assert.equal(await t.page.evaluate(()=>aurenBoss.temPendente()),false);
+    },{guild:true,attacks:3});
+    await test('guilda: aguarda a recarga da imagem e ataca quando o jogo libera',async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      assert.match(await t.status(),/liberar a próxima/);
+      await t.set({cooldown:false});await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+    },{guild:true,attacks:3,cooldown:true});
+    await test('guilda: respeita as 8 investidas usadas',async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      assert.match(await t.status(),/Limite de 8/);
+    },{guild:true,attacks:8});
+    await test('guilda: boss encerrado não é atacado',async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      assert.match(await t.status(),/da guilda ativo/);
+    },{guild:true,active:false});
+    await test('intervalos da guilda e do mundo são independentes mesmo com o mesmo nome',async t=>{
+      await t.start();await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      await t.set({guild:true,attacks:0,selected:'basic',cooldown:false,used:[]});
+      await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire','fire']);
+      const estados=await t.page.evaluate(()=>JSON.parse(sessionStorage.getItem('aurenBossInvestidasV2')));
+      assert.equal(estados.mundo.pendente,false);
+      assert.equal(estados.guilda.pendente,false);
+    });
+    await test('destino guilda não ataca o boss do mundo',async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      assert.match(await t.status(),/Abra Guildas/);
+    },{destino:'guilda'});
+    await test('guilda: reinicialização preserva uma investida sem confirmação',async t=>{
+      await t.start();await t.tick(4400);
+      await t.page.evaluate(()=>{aurenBoss.pausar();delete window.aurenBoss;});
+      await t.page.addScriptTag({path:path.join(root,'boss.js')});
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      await t.set({attacks:4,cooldown:true});await t.tick(4400);
+      assert.equal(await t.page.evaluate(()=>aurenBoss.temPendente()),false);
+    },{guild:true,attacks:3,noConfirm:true});
+    await test('migra confirmação pendente da versão anterior como Boss do mundo',async t=>{
+      await t.page.evaluate(()=>{
+        aurenBoss.pausar();delete window.aurenBoss;
+        sessionStorage.setItem('aurenBossInvestidaV1',JSON.stringify({boss:'gorath',ataques:3,enviadoEm:Date.now(),pendente:true}));
+      });
+      await t.page.addScriptTag({path:path.join(root,'boss.js')});
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      await t.set({attacks:4,cooldown:true});await t.tick(4400);
+      const estado=await t.page.evaluate(()=>JSON.parse(sessionStorage.getItem('aurenBossInvestidasV2')));
+      assert.equal(estado.mundo.pendente,false);
+    },{attacks:3});
     console.log('TOTAL',count);
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});
