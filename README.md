@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.31, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.32, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -80,6 +80,16 @@ Antes de preencher a receita, confere se você tem **1 Olho de corvo ou 1 Coraç
 **Se as duas partes estiverem em falta ou não houver ouro suficiente**, volta à Caçada e ignora o limite de fadiga enquanto não puder fabricar. Continua recuperando vigor só com a poção comum, conforme suas escolhas. Se a fadiga ainda exigir uma poção maior, confere os recursos novamente a cada minuto, entre as ações do jogo. Se receber uma poção maior ou voltar a ter ingredientes, aplica o limite de fadiga de novo. Desmarcar a fabricação automática também encerra essa exceção.
 
 Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada como falta de recursos. Nesses casos o bot espera ou pausa e explica o que precisa ser conferido. Se o jogo não confirmar a fabricação, preserva a ação em espera para evitar outro gasto de ingredientes e ouro. Pausar e alterar opções interrompem a navegação. As verificações do jogo continuam exigindo sua resposta e não contam no tempo de espera da fabricação.
+
+## Boss do servidor
+
+Abra a aba **Boss** do painel e clique em **Iniciar Boss**. O bot pausa a caçada e abre a tela Boss do jogo. As configurações de criatura e vigor da caçada não são necessárias para este modo.
+
+Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita as habilidades em recarga, o intervalo de 15 minutos, a vida e o estado do encontro, além do botão de ataque liberado pelo jogo. Habilidades recarregam após duas outras investidas, e o ataque simples pode ser repetido. Durante o acompanhamento, mantenha a tela Boss aberta.
+
+Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
+
+**Pausar Boss**, **Pausar**, **Ocultar painel** e alterações nas configurações interrompem o modo. A preferência **Continuar mesmo sem olhar a aba do jogo** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. O botão **Iniciar** geral inicia a caçada. Expedições e pausas sorteadas são configuradas para a caçada.
 
 ## Pausas automáticas
 
@@ -237,3 +247,11 @@ node tests/fabricacao.cjs
 ```
 
 Usam uma oficina simulada com os controles da interface pública: estoque, receita, quantidade, ingredientes, ouro, confirmação, retorno à caçada, falta de recursos, nova conferência e interrupções. Não gastam recursos de uma conta real.
+
+## Testes do Boss
+
+```bash
+node tests/boss.cjs
+```
+
+Usam os componentes visíveis do Boss em uma página simulada. Cobrem maior dano disponível, recargas, intervalo de 15 minutos, estado e vida do Boss, erros, verificações, pausa e persistência da confirmação. A integração do menu com a caçada também é verificada em `tests/fabricacao.cjs`.

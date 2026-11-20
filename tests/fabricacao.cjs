@@ -93,6 +93,23 @@ const root=path.join(__dirname,'..');
  await test('estoque desconhecido não autoriza fabricação nem libera o limite',async t=>{await t.p.locator('.hunt-potion-quantity').evaluate(el=>el.remove());await t.start();await t.tick(10000);const g=await t.p.evaluate(()=>game);assert.equal(g.nav,0);assert.equal(g.craft,0);assert.equal(g.counts.attack,0);},{f:99,major:0});
  await test('verificação interrompe a fabricação sem gastar e retoma após resposta manual',async t=>{await t.start();await t.tick(62000);assert.equal(await t.p.evaluate(()=>game.craft),0);assert.equal(await t.p.locator('#iniciar').isDisabled(),true);assert.match(await t.status(),/desafio de sombra/);await t.p.locator('#captcha').evaluate(el=>el.remove());await t.tick(10000);assert.equal(await t.p.evaluate(()=>game.craft),1);assert.equal(await t.p.locator('#hunt').isVisible(),true);},{f:99,major:0,flags:{captchaFill:true}});
  await test('não fabrica sem necessidade quando a fadiga zera no novo dia',async t=>{await t.start();await t.tick(12000);await t.set({gold:5700,olhos:3,f:0,hp:60});await t.tick(62000);const g=await t.p.evaluate(()=>game);assert.equal(g.nav,1);assert.equal(g.craft,0);assert.ok(g.counts.attack>1);},{f:99,major:0,gold:0,flags:{autoResult:true}});
+ await test('aba Boss alterna com a caçada e respeita Pausar e Ocultar',async t=>{
+  await t.p.addScriptTag({path:path.join(root,'boss.js')});
+  await t.p.locator('#tabBoss').click();
+  assert.equal(await t.p.locator('#abaBoss').isVisible(),true);
+  assert.equal(await t.p.locator('#abaCacada').isVisible(),false);
+  await t.p.locator('#iniciarBoss').click();
+  assert.equal(await t.p.evaluate(()=>aurenBoss.ativo()),true);
+  await t.p.locator('#pausar').click();
+  assert.equal(await t.p.evaluate(()=>aurenBoss.ativo()),false);
+  await t.p.locator('#iniciarBoss').click();
+  await t.p.locator('#iniciar').click();
+  assert.equal(await t.p.evaluate(()=>aurenBoss.ativo()),false);
+  await t.p.locator('#pausar').click();
+  await t.p.locator('#iniciarBoss').click();
+  await t.p.locator('#fechar').click();
+  assert.equal(await t.p.evaluate(()=>aurenBoss.ativo()),false);
+ });
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
