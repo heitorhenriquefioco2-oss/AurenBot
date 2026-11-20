@@ -66,6 +66,7 @@
       if (todos('.world-boss-error', tela).length) { pausar('O jogo exibiu um erro no Boss. Confira a mensagem e clique em Iniciar Boss.'); return; }
       if (!unico(todos('.world-boss-status-active', tela))) { informar('Aguardando um Boss ativo.'); return; }
       if (!boss || ataques === null) { informar('Aguardando o nome do Boss e a contagem das suas investidas.'); return; }
+      if (ataques >= 8) { informar('Limite de 8 ataques por pessoa atingido neste encontro. Aguardando o próximo Boss.'); return; }
       const vida = unico(todos('.world-boss-life-track[role="progressbar"]', tela));
       if (!(Number(vida?.getAttribute('aria-valuenow')) > 0)) { informar('O Boss não tem vida disponível para atacar.'); return; }
       if (estado && Date.now() - estado.enviadoEm < 15 * 60000) { informar('Aguardando o intervalo de 15 minutos entre investidas.'); return; }

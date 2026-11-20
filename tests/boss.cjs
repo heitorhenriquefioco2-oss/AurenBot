@@ -76,6 +76,27 @@ const root = path.join(__dirname, '..');
     await test('repete ataque simples quando as habilidades estão em recarga',async t=>{
       await t.start();await t.tick(4400);assert.deepEqual((await t.game()).clicks,['basic']);
     },{used:['fire','ice']});
+    for (const attacks of [8,9]) await test('respeita contagem já existente de investidas '+attacks,async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      assert.match(await t.status(),/Limite de 8 ataques/);
+    },{attacks});
+    await test('faz a oitava investida e impede a nona mesmo após 15 minutos',async t=>{
+      await t.start();await t.tick(6600);
+      assert.equal((await t.game()).attacks,8);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      await t.set({cooldown:false});
+      await t.tick(16*60000);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      assert.match(await t.status(),/Limite de 8 ataques/);
+    },{attacks:7});
+    await test('contagem de um novo encontro libera novas investidas',async t=>{
+      await t.start();await t.tick(4400);
+      assert.deepEqual((await t.game()).clicks,[]);
+      await t.set({attacks:0});
+      await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+    },{attacks:8});
     for(const options of [{active:false},{hp:0},{cooldown:true},{fieldsetDisabled:true},{occupied:true}]) {
       await test('respeita bloqueio do jogo '+JSON.stringify(options),async t=>{
         await t.start();await t.tick(8800);assert.deepEqual((await t.game()).clicks,[]);

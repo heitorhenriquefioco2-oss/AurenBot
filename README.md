@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.32, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.33, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -85,7 +85,7 @@ Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada co
 
 Abra a aba **Boss** do painel e clique em **Iniciar Boss**. O bot pausa a caçada e abre a tela Boss do jogo. As configurações de criatura e vigor da caçada não são necessárias para este modo.
 
-Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita as habilidades em recarga, o intervalo de 15 minutos, a vida e o estado do encontro, além do botão de ataque liberado pelo jogo. Habilidades recarregam após duas outras investidas, e o ataque simples pode ser repetido. Durante o acompanhamento, mantenha a tela Boss aberta.
+Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita o limite de **8 ataques por pessoa em cada encontro**, contando também as investidas feitas manualmente, e o intervalo de **15 minutos**. Confere a vida, o estado do encontro e o botão de ataque liberado pelo jogo. Ao atingir 8 investidas, acompanha a tela aguardando o próximo encontro. Durante o acompanhamento, mantenha a tela Boss aberta.
 
 Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
 
