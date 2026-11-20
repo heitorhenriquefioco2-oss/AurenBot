@@ -68,12 +68,13 @@ const root = path.join(__dirname, '..');
     await test('escolhe maior dano e confirma uma única investida',async t=>{
       await t.start();await t.tick(6600);
       assert.deepEqual((await t.game()).clicks,['fire']);
-      assert.equal((await t.game()).huntPaused,true);
+      assert.notEqual((await t.game()).huntPaused,true);
       assert.equal(await t.page.evaluate(()=>aurenBoss.temPendente()),false);
     });
     await test('espera 15 minutos e escolhe próxima habilidade disponível',async t=>{
-      await t.start();await t.tick(6600);await t.set({cooldown:false});
+      await t.start();await t.tick(6600);
       await t.tick(890000);assert.deepEqual((await t.game()).clicks,['fire']);
+      await t.set({cooldown:false});
       await t.tick(20000);assert.deepEqual((await t.game()).clicks,['fire','ice']);
     });
     await test('repete ataque simples quando as habilidades estão em recarga',async t=>{
@@ -181,7 +182,7 @@ const root = path.join(__dirname, '..');
     await test('destino guilda não ataca o boss do mundo',async t=>{
       await t.start();await t.tick(4400);
       assert.deepEqual((await t.game()).clicks,[]);
-      assert.match(await t.status(),/Abra Guildas/);
+      assert.match(await t.status(),/Abra a tela/);
     },{destino:'guilda'});
     await test('guilda: reinicialização preserva uma investida sem confirmação',async t=>{
       await t.start();await t.tick(4400);
@@ -204,6 +205,16 @@ const root = path.join(__dirname, '..');
       const estado=await t.page.evaluate(()=>JSON.parse(sessionStorage.getItem('aurenBossInvestidasV2')));
       assert.equal(estado.mundo.pendente,false);
     },{attacks:3});
+    for(const guild of [false,true])await test('primeiro ataque liberado não espera intervalo salvo de outro encontro '+guild,async t=>{
+      await t.page.evaluate(guild=>{
+        aurenBoss.pausar();delete window.aurenBoss;
+        const tipo=guild?'guilda':'mundo';
+        sessionStorage.setItem('aurenBossInvestidasV2',JSON.stringify({[tipo]:{boss:'gorath',ataques:7,enviadoEm:Date.now(),pendente:false}}));
+      },guild);
+      await t.page.addScriptTag({path:path.join(root,'boss.js')});
+      await t.start();await t.tick(6600);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+    },{guild});
     console.log('TOTAL',count);
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

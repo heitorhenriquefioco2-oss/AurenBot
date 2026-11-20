@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.34, com abas de Caçada, Expedição e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.35, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -83,13 +83,15 @@ Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada co
 
 ## Boss da guilda e do mundo
 
-Abra a aba **Boss** do painel e escolha **Boss da tela atual**, **Boss da guilda** ou **Boss do mundo**. Para a guilda, abra **Guildas → Boss** no jogo e clique em **Iniciar Boss**. A opção da tela atual reconhece os dois tipos automaticamente. Se estiver fora de um combate, essa opção abre o Boss do mundo. O bot pausa a caçada para acompanhar o combate. As configurações de criatura e vigor da caçada não são necessárias para este modo.
+Abra a aba **Extras** do painel, escolha **Boss da tela atual**, **Boss da guilda** ou **Boss do mundo** e clique em **Iniciar Boss**. O extra funciona com a caçada ativa ou parada. As configurações de criatura e vigor são usadas apenas pela caçada. Ao escolher a tela atual, o extra reconhece o Boss aberto e continua acompanhando esse tipo; fora de um combate, começa pelo Boss do mundo. O destino da guilda abre **Guildas → Boss** automaticamente.
 
-Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita o limite de **8 ataques por pessoa em cada encontro**, contando também as investidas feitas manualmente, e o intervalo de **15 minutos**. Confere a vida, o estado do encontro e o botão de ataque liberado pelo jogo. Ao atingir 8 investidas, acompanha a tela aguardando o próximo encontro. Durante o acompanhamento, mantenha a tela Boss aberta.
+Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita o limite de **8 ataques por pessoa em cada encontro**, contando também as investidas feitas manualmente, e o intervalo de **15 minutos** informado pelo jogo. O primeiro ataque é feito assim que o combate estiver liberado, sem espera baseada no horário salvo de outro encontro. Confere a vida, o estado do encontro e o botão de ataque liberado pelo jogo.
+
+Com a caçada ligada, aguarda a ação em andamento terminar, visita o Boss e volta à Caçada após confirmar a investida ou conferir a recarga. A caçada continua entre essas visitas. Ao vencer o cronômetro, visita o Boss novamente. Se o Boss estiver inativo ou as 8 investidas acabarem, confere novamente a cada minuto, entre as ações da caçada.
 
 Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Na guilda, lê a indicação como **3/8 investidas usadas** e o relógio de **Próximo ataque em**. Os registros de confirmação e intervalo da guilda e do mundo são independentes. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
 
-**Pausar Boss**, **Pausar**, **Ocultar painel** e alterações nas configurações interrompem o modo. A preferência **Continuar mesmo sem olhar a aba do jogo** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. O botão **Iniciar** geral inicia a caçada. Expedições e pausas sorteadas são configuradas para a caçada.
+**Iniciar Boss** e **Pausar Boss** controlam o extra. Os botões gerais **Iniciar** e **Pausar** controlam a caçada, mantendo o extra independente. Trocar o destino do Boss interrompe apenas o extra. **Ocultar painel** interrompe ambos. A preferência **Continuar mesmo sem olhar a aba do jogo** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. Uma recarga deixa o extra parado até clicar em Iniciar Boss novamente.
 
 ## Pausas automáticas
 
@@ -252,6 +254,7 @@ Usam uma oficina simulada com os controles da interface pública: estoque, recei
 
 ```bash
 node tests/boss.cjs
+node tests/boss-cacada.cjs
 ```
 
 Usam os componentes visíveis do Boss em uma página simulada. Cobrem maior dano disponível, recargas, intervalo de 15 minutos, estado e vida do Boss, erros, verificações, pausa e persistência da confirmação. A integração do menu com a caçada também é verificada em `tests/fabricacao.cjs`.

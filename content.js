@@ -580,9 +580,9 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.34</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.35</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
-    <nav role="tablist" aria-label="Opções de caçada, expedição e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabBoss" role="tab" aria-selected="false" aria-controls="abaBoss" tabindex="-1">Boss</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
+    <nav role="tablist" aria-label="Opções de caçada, expedição, extras e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabBoss" role="tab" aria-selected="false" aria-controls="abaBoss" tabindex="-1">Extras</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
     <label>Criatura que você quer caçar<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
     <small>Digite o nome igual ao do jogo e deixe a região da criatura aberta.</small>
@@ -610,8 +610,8 @@
     <div id="abaBoss" role="tabpanel" aria-labelledby="tabBoss" hidden>
       <label>Qual Boss atacar?<select id="bossDestino"><option value="auto">Boss da tela atual</option><option value="guilda">Boss da guilda</option><option value="mundo">Boss do mundo</option></select></label>
       <p>Escolhe o maior dano disponível contra o Boss da guilda ou do mundo.</p>
-      <small>Para o Boss da guilda, abra Guildas → Boss no jogo antes de iniciar.</small>
-      <small>Respeita o limite de 8 ataques por pessoa em cada encontro e o intervalo de 15 minutos. Escolhe o maior dano entre os ataques disponíveis no jogo. A caçada fica pausada enquanto este modo estiver ligado.</small>
+      <small>O Boss funciona sozinho ou junto com a caçada. Iniciar Boss e Pausar Boss controlam apenas este extra.</small>
+      <small>Respeita o limite de 8 ataques por pessoa em cada encontro e o intervalo de 15 minutos. Escolhe o maior dano entre os ataques disponíveis no jogo. Entre as investidas, a caçada continua. O extra confere o Boss entre as ações da caçada e retorna depois.</small>
       <nav><button id="iniciarBoss">Iniciar Boss</button><button id="pausarBoss">Pausar Boss</button></nav>
       <output id="statusBoss" aria-live="polite">Clique em Iniciar Boss para abrir o combate e acompanhar as investidas.</output>
     </div>
@@ -631,7 +631,7 @@
     <small id="ajudaReinicio">Se um erro parar a caçada, tenta continuar a cada 10 segundos. Primeiro, confere o vigor e espera a resposta do jogo. Pausar, ocultar o painel ou mudar uma opção cancela essas tentativas.</small>
     <nav><button id="configurarAvisos">Configurar avisos</button></nav><small id="statusAvisos" aria-live="polite">Avisos desligados.</small>
     <nav><button id="diagnostico">Pausar e conferir</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
-    <small>Ocultar também pausa a caçada. Para abrir o painel de novo, clique no ícone da extensão. O bot continua fechando os avisos do jogo que reconhece.</small>
+    <small>Ocultar interrompe a caçada e os extras. Para abrir o painel de novo, clique no ícone da extensão. O bot continua fechando os avisos do jogo que reconhece.</small>
     <output id="status" aria-live="polite">Escolha suas opções e clique em Iniciar para começar.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
@@ -705,6 +705,28 @@
   let detalhesFadigaDoBot = null;
   let ataquePronto = null, motivoRecuperacao = '';
   let expedicaoPendente = null, proximaVerificacaoExpedicao = 0;
+  let vezBoss = false, iniciarDepoisBoss = false;
+  function reservarBoss() {
+    if (pendente || preparacao || expedicaoPendente || planoPausas?.retomarEm) return false;
+    vezBoss = true;
+    return true;
+  }
+  async function retornarDoBoss() {
+    const token = {};
+    try {
+      if (timer && vezBoss) {
+        preparacao = token;
+        if (!await navegarCacada(()=>vezBoss && preparacao === token && !!timer)) return;
+        if (!await prepararModalidade(token)) return;
+      }
+    } catch (error) {
+      pausar(`Não consegui voltar do Boss à Caçada: ${error.message}`, true);
+    } finally {
+      if (preparacao === token) preparacao = null;
+      vezBoss = false;
+      if (iniciarDepoisBoss) { iniciarDepoisBoss = false; void iniciar(); }
+    }
+  }
   const observarProntidao = new MutationObserver(registros => {
     if (!ataquePronto) return;
     const { botao, criatura, modo } = ataquePronto;
@@ -798,7 +820,7 @@
     return true;
   }
   function pausar(msg = 'Caçada pausada. Clique em Iniciar para continuar.', automatica = false) {
-    window.aurenBoss?.pausar();
+    iniciarDepoisBoss = false;
     ataquePronto = null;
     faltaRecursosMaior = null;
     const retomar = automatica && reinicioArmado && config?.reiniciarAutomaticamente;
@@ -916,7 +938,7 @@
     ].join('\n')); return d;
   }
   function ciclo() {
-    if (!timer || preparacao || removido) return;
+    if (!timer || preparacao || removido || vezBoss) return;
     try {
       atualizarStatusPausas();
       if (planoPausas?.retomarEm && Date.now() < planoPausas.retomarEm) return;
@@ -1022,8 +1044,7 @@
     } catch (e) { pausar(`Não consegui continuar: ${e.message}`, true); }
   }
   async function iniciar(automatico = false, planoSalvo = null) {
-    window.aurenBoss?.pausar();
-    if (window.aurenBoss?.temPendente()) { status('Confira a confirmação da investida na aba Boss antes de iniciar a caçada.'); return; }
+    if (vezBoss) { iniciarDepoisBoss = true; status('Vou iniciar a caçada assim que terminar de conferir a investida do Boss.'); return; }
     if (timer || preparacao || removido) return;
     clearTimeout(timerReinicio); timerReinicio = null;
     if (!automatico) reinicioArmado = false;
@@ -1056,11 +1077,10 @@
       else if (!timer && !preparacao) status(e.message);
     }
   }
-  function fechar() { pausar('Painel fechado e caçada pausada. Clique no ícone da extensão para abrir de novo.'); host.hidden = true; }
+  function fechar() { window.aurenBoss?.pausar(); pausar('Painel fechado e caçada pausada. Clique no ícone da extensão para abrir de novo.'); host.hidden = true; }
   function prepararAtualizacao() {
     if (window.aurenBoss?.ativo()) {
       window.aurenBoss.pausar('O jogo vai atualizar. Clique em Iniciar Boss depois da recarga.');
-      return;
     }
     if (!timer || !config) return;
     try {
@@ -1077,6 +1097,7 @@
     }
   }
   const api = { iniciar, pausar, fechar, diagnostico, decidir, seletores, prepararAtualizacao,
+    reservarBoss, retornarDoBoss, liberarBoss:()=>{vezBoss=false;},
     ocupado: () => !!(pendente || preparacao || expedicaoPendente) };
   window.aurenCacada = api;
   ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
@@ -1105,6 +1126,7 @@
     });
   }
   root.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => {
+    if (el.id === 'bossDestino') { window.aurenBoss?.pausar(); salvar(); return; }
     atualizarCampos();
     if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição pronta. Clique em Iniciar para começar.' : 'Não vou iniciar novas expedições. A viagem atual continua no jogo.');
     selecionando = null; pausar('Opções alteradas. Clique em Iniciar para continuar com elas.'); salvar();
