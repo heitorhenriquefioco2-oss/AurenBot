@@ -364,7 +364,6 @@
     const n = Number(s.replace(/\./g, ''));
     return Number.isSafeInteger(n) && n >= 0 ? n : null;
   }
-  const partesPocaoMaior = ['olho de corvo', 'coracao de serpente'];
   function estoqueParteOficina(el) {
     const estoque = normal(el.querySelector('small')?.textContent).match(/^([\d.]+) na mochila$/);
     return estoque ? inteiroOficina(estoque[1]) : null;
@@ -379,7 +378,7 @@
     const bolsa = normal(ouro?.querySelector('dd small')?.textContent).match(/^de ([\d.]+)$/);
     const disponivel = bolsa ? inteiroOficina(bolsa[1]) : null;
     // Não aceita outro custo, nem mesmo outro recurso adicional.
-    if (!quantidade || quantidade.value !== '1' || normal(resultado?.textContent) !== '1 pocao de vigor maior' || custo !== 1900 || disponivel === null || custos.some(el=>el !== ouro && inteiroOficina(el.querySelector('dd strong')?.textContent) !== 0)) return null;
+    if (!quantidade || quantidade.value !== '1' || normal(resultado?.textContent) !== '1 pocao de vigor maior' || custo !== config.craft.ouro || disponivel === null || custos.some(el=>el !== ouro && inteiroOficina(el.querySelector('dd strong')?.textContent) !== 0)) return null;
     const slots = todos('.forge-material-socket');
     const partes = slots.filter(el=>normal(el.querySelector('strong')?.textContent) !== 'ouro');
     if (slots.length !== 2 || partes.length !== 1) return null;
@@ -388,13 +387,14 @@
       return m ? {inserido:Number(m[1]), necessario:Number(m[2])} : null;
     };
     const parte = partes[0], slot = lerSlot(parte), slotOuro = lerSlot(slots.find(el=>el !== parte));
-    if (!slot || slot.necessario !== 1 || !slotOuro || slotOuro.necessario !== 1900) return null;
+    if (!slot || slot.necessario !== config.craft.quantidade || !slotOuro || slotOuro.necessario !== config.craft.ouro) return null;
     return {bancada, disponivel, slot, slotOuro,
       ingrediente:normal(parte.querySelector('strong')?.textContent),
       estoque:estoqueParteOficina(parte)};
   }
   async function fabricarPocaoMaior() {
     if (preparacao || pendente) return;
+    const materiais = config.craft;
     const token = {}; preparacao = token; faltaRecursosMaior = null;
     const valido = () => preparacao === token && !removido;
     const esperar = async (ler, mensagem, prazo = 8000) => {
@@ -436,21 +436,21 @@
         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(seletor, '1');
         seletor.dispatchEvent(new Event('change', {bubbles:true}));
       }
-      const r = await esperar(receitaMaior, 'A receita mudou. Confira se pede uma parte e 1.900 de ouro.');
+      const r = await esperar(receitaMaior, 'A receita mudou. Confira o ingrediente, a quantidade e o ouro configurados para o craft.');
       if (!valido()) return;
       let ingrediente = r.ingrediente;
-      let semRecursos = r.disponivel < 1900;
-      if (!semRecursos && (!partesPocaoMaior.includes(ingrediente) || !(r.slot.inserido === 1 || r.estoque > 0))) {
+      let semRecursos = r.disponivel < materiais.ouro;
+      if (!semRecursos && (!materiais.ingredientes.includes(ingrediente) || !(r.slot.inserido === materiais.quantidade || r.estoque >= materiais.quantidade))) {
         await acionar(()=>unico(todos('.forge-potion-swap-button')), 'Não consegui abrir a escolha de ingredientes.');
         const cartao = nome => unico(todos('.forge-potion-ingredient-card').filter(el=>normal(el.querySelector('strong')?.textContent) === nome));
         const escolhaParte = await esperar(()=>{
-          const opcoes = partesPocaoMaior.map(nome=>{
+          const opcoes = materiais.ingredientes.map(nome=>{
             const parte = cartao(nome);
             return {nome, estoque:parte ? estoqueParteOficina(parte) : null};
           });
-          const disponivel = opcoes.find(opcao=>opcao.estoque > 0);
-          return disponivel || (opcoes.every(opcao=>opcao.estoque === 0) && {nome:null});
-        }, 'Não consegui conferir Olho de corvo e Coração de serpente na mochila.');
+          const disponivel = opcoes.find(opcao=>opcao.estoque >= materiais.quantidade);
+          return disponivel || (opcoes.every(opcao=>opcao.estoque !== null) && {nome:null});
+        }, 'Não consegui conferir os ingredientes configurados na mochila.');
         if (!valido()) return;
         ingrediente = escolhaParte.nome;
         semRecursos = !ingrediente;
@@ -459,7 +459,7 @@
           const desejado = campo => normal(campo.getAttribute('aria-label')) === ingrediente;
           const selecaoCorreta = () => {
             const lista = campos();
-            return unico(lista.filter(desejado))?.value === '1' && lista.every(campo=>desejado(campo) || campo.value === '0');
+            return unico(lista.filter(desejado))?.value === String(materiais.quantidade) && lista.every(campo=>desejado(campo) || campo.value === '0');
           };
           const ajustar = (campo, valor) => {
             if (!habilitado(campo) || campo.value === valor) return;
@@ -473,9 +473,9 @@
             if (!alvo) return false;
             const outro = lista.find(campo=>!desejado(campo) && campo.value !== '0');
             if (outro) ajustar(outro, '0');
-            else ajustar(alvo, '1');
+            else ajustar(alvo, String(materiais.quantidade));
             return selecaoCorreta();
-          }, 'Não consegui selecionar apenas uma parte para a poção maior.');
+          }, 'Não consegui selecionar a quantidade configurada do ingrediente.');
           const encaixar = () => todos('.forge-potion-ingredient-apply');
           await acionar(()=>selecaoCorreta() && unico(encaixar()), 'Não consegui encaixar a parte da poção maior.');
           await esperar(()=>!encaixar().length && receitaMaior()?.ingrediente === ingrediente, 'Não consegui confirmar a parte escolhida.');
@@ -485,14 +485,14 @@
       if (semRecursos) {
         if (!await voltar()) return;
         faltaRecursosMaior = {conferidoEm:agoraAtivo()};
-        status('Falta uma parte aceita ou ouro para fabricar. Vou caçar sem limite de fadiga e conferir os recursos de novo em 1 minuto.');
+        status('Falta ingrediente configurado ou ouro para fabricar. Vou caçar sem limite de fadiga e conferir os recursos de novo em 1 minuto.');
         return;
       }
-      const receitaPronta = atual => atual?.ingrediente === ingrediente && atual.disponivel >= 1900 && atual.slot.inserido === 1 && atual.slotOuro.inserido === 1900;
+      const receitaPronta = atual => atual?.ingrediente === ingrediente && atual.disponivel >= materiais.ouro && atual.slot.inserido === materiais.quantidade && atual.slotOuro.inserido === materiais.ouro;
       if (!receitaPronta(receitaMaior())) {
         await acionar(()=>{
           const atual = receitaMaior();
-          if (atual?.ingrediente !== ingrediente || atual.disponivel < 1900 || !(atual.slot.inserido === 1 || atual.estoque > 0)) return null;
+          if (atual?.ingrediente !== ingrediente || atual.disponivel < materiais.ouro || !(atual.slot.inserido === materiais.quantidade || atual.estoque >= materiais.quantidade)) return null;
           return unico(todos('button.forge-fill-recipe'));
         }, 'Não consegui preencher a receita da poção maior.');
       }
@@ -586,7 +586,7 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.37</h2><small>Arraste este título para mover o painel.</small></header>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.38</h2><small>Arraste este título para mover o painel.</small></header>
     <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
     <nav role="tablist" aria-label="Opções de caçada, expedição, extras e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabBoss" role="tab" aria-selected="false" aria-controls="abaBoss" tabindex="-1">Extras</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
@@ -609,7 +609,14 @@
     <p>Só a poção comum é escolhida para recuperar vigor. Com este controle ligado, a maior é usada para baixar a fadiga, mesmo se você escolheu esperar o vigor voltar sozinho. Ela também enche o vigor.</p>
     <small>O bot abre os detalhes do Vigor para conferir a fadiga. Com vigor cheio e a poção maior indisponível, faz uma caçada para gastar vigor, mesmo se a fadiga já estiver no limite. Após o resultado, volta a conferir a fadiga. Se a maior acabar, só tenta fabricá-la quando a opção abaixo estiver marcada.</small>
     <label><input id="fabricarMaior" type="checkbox" disabled> Fabricar poções de vigor maior se necessário</label>
-    <small>Quando a maior acabar e for preciso baixar a fadiga, vai à Oficina e fabrica uma usando 1 Olho de corvo ou 1 Coração de serpente, mais 1.900 de ouro. Depois volta à Caçada. Se faltar uma parte aceita ou ouro, continua caçando sem limite de fadiga e confere os recursos de novo a cada minuto. A poção comum continua sendo usada para recuperar vigor. Vale enquanto o controle de fadiga estiver ligado.</small>
+    <small>Fabrica uma poção por vez com a receita configurada abaixo e retorna à Caçada. Se faltar ingrediente ou ouro, continua caçando sem limite de fadiga e confere os recursos novamente a cada minuto.</small>
+    <details><summary>Configurar craft da poção maior</summary>
+      <label>Ingrediente(s) aceito(s)<input id="craftIngredientes" value="Olho de corvo; Coração de serpente" maxlength="500" disabled></label>
+      <small>Use o nome exato do jogo. Para permitir ingredientes alternativos, separe os nomes por ponto e vírgula. Usa apenas um desses tipos por poção.</small>
+      <label>Quantidade do ingrediente por poção<input id="craftQuantidade" type="text" inputmode="numeric" value="1" disabled></label>
+      <label>Ouro por poção<input id="craftOuro" type="text" inputmode="numeric" value="1900" disabled></label>
+      <small>Atualize estes valores quando o jogo mudar a receita. Confere as quantidades e o custo na Oficina antes de gastar.</small>
+    </details>
     </div>
     <div id="abaExpedicao" role="tabpanel" aria-labelledby="tabExpedicao" hidden>
       <label><input id="manterExpedicao" type="checkbox"> Iniciar outra expedição quando a atual terminar</label>
@@ -765,6 +772,18 @@
     c.controlarFadiga = ui('controlarFadiga').checked;
     c.bossDestino = ui('bossDestino').value;
     c.fabricarMaior = c.controlarFadiga && ui('fabricarMaior').checked;
+    c.craft = null;
+    c.craftIngredientes = ui('craftIngredientes').value.trim();
+    c.craftQuantidade = ui('craftQuantidade').value.trim();
+    c.craftOuro = ui('craftOuro').value.trim();
+    if (c.fabricarMaior) {
+      const ingredientes = [...new Set(c.craftIngredientes.split(';').map(normal).filter(Boolean))];
+      const quantidade = inteiroOficina(c.craftQuantidade), ouro = inteiroOficina(c.craftOuro);
+      if (!ingredientes.length) throw Error('Craft: informe o nome de pelo menos um ingrediente.');
+      if (quantidade === null || quantidade < 1) throw Error('Craft: a quantidade do ingrediente deve ser um inteiro de 1 ou mais.');
+      if (ouro === null) throw Error('Craft: informe uma quantidade inteira de ouro de 0 ou mais.');
+      c.craft = {ingredientes, quantidade, ouro};
+    }
     c.aproveitarMaior = c.controlarFadiga && ui('aproveitarMaior').checked;
     c.folgaFadiga = 0;
     c.vigorMaior = null;
@@ -1134,7 +1153,7 @@
   window.aurenCacada = api;
   ui('iniciar').onclick = () => iniciar(); ui('pausar').onclick = () => pausar(); ui('fechar').onclick = fechar;
   ui('diagnostico').onclick = () => { pausar(); try { diagnostico(); } catch (e) { status(e.message); } };
-  const campos = ['bossDestino', 'criatura', 'modo', 'atacar', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao', 'pausasAleatorias', 'intervaloPausaMin', 'intervaloPausaMax', 'duracaoPausaMin', 'duracaoPausaMax', 'controlarFadiga', 'limiteFadiga', 'fabricarMaior', 'aproveitarMaior', 'folgaFadiga', 'vigorMaior'];
+  const campos = ['bossDestino', 'criatura', 'modo', 'atacar', 'limiteAlivio', 'economizar', 'margem', 'continuarOculta', 'reiniciarAutomaticamente', 'manterExpedicao', 'duracaoExpedicao', 'pausasAleatorias', 'intervaloPausaMin', 'intervaloPausaMax', 'duracaoPausaMin', 'duracaoPausaMax', 'controlarFadiga', 'limiteFadiga', 'fabricarMaior', 'craftIngredientes', 'craftQuantidade', 'craftOuro', 'aproveitarMaior', 'folgaFadiga', 'vigorMaior'];
   for (const id of campos) {
     const campo = ui(id), valor = preferencias[id];
     if (campo.type === 'checkbox') { if (typeof valor === 'boolean') campo.checked = valor; }
@@ -1145,6 +1164,7 @@
     ui('duracaoExpedicao').disabled = !ui('manterExpedicao').checked;
     for (const id of ['intervaloPausaMin','intervaloPausaMax','duracaoPausaMin','duracaoPausaMax']) ui(id).disabled = !ui('pausasAleatorias').checked;
     ui('fabricarMaior').disabled = !ui('controlarFadiga').checked;
+    for (const id of ['craftIngredientes','craftQuantidade','craftOuro']) ui(id).disabled = !ui('controlarFadiga').checked || !ui('fabricarMaior').checked;
     ui('limiteFadiga').disabled = !ui('controlarFadiga').checked;
     ui('aproveitarMaior').disabled = !ui('controlarFadiga').checked;
     for (const id of ['folgaFadiga','vigorMaior']) ui(id).disabled = !ui('controlarFadiga').checked || !ui('aproveitarMaior').checked;

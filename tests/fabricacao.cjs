@@ -30,7 +30,7 @@ const root=path.join(__dirname,'..');
   },options);
   await p.goto('https://fadiga.test/');await p.clock.install();
   await p.evaluate(options=>{
-   const g=game;g.gold=options.gold??5700;g.olhos=options.olhos??3;g.coracoes=options.coracoes??0;g.parte=options.flags?.otherPart?"Presa ancestral":"Olho de corvo";g.craft=0;g.fill=0;g.nav=0;g.qty=1;
+   const g=game;g.gold=options.gold??5700;g.olhos=options.olhos??3;g.coracoes=options.coracoes??0;g.parte=options.flags?.otherPart?"Presa ancestral":(options.receita?.ingrediente??"Olho de corvo");g.craft=0;g.fill=0;g.nav=0;g.qty=1;g.receita={ouro:1900,quantidade:1,ingrediente:'Olho de corvo',...options.receita};g.extra=options.extra??3;
    const main=document.querySelector('main'),hunt=document.createElement('div');hunt.id='hunt';while(main.firstChild)hunt.append(main.firstChild);main.append(hunt);
    document.body.insertAdjacentHTML('afterbegin','<nav><button id="office">Oficina</button><button id="huntNav">Caçada</button></nav>');
    main.insertAdjacentHTML('beforeend','<div id="workshop" hidden></div>');
@@ -39,8 +39,8 @@ const root=path.join(__dirname,'..');
     const w=document.getElementById('workshop');w.innerHTML=`<h1>Oficina da vigília</h1><div class="workshop-stations"><button data-station="cauldron" id="cauldron">Caldeirão</button></div><button id="potions">Poções</button><div class="workshop-recipe-grid"><button id="recipe" aria-label="Poção de vigor maior, ${g.major} na mochila">Poção de vigor maior</button></div><div id="stage"></div>`;
    };
    window.stage=()=>{
-    const goldCost=(options.flags?.wrongCost?2000:1900)*g.qty,part=g.parte, parts=part==='Olho de corvo'?g.olhos:g.coracoes;
-    document.getElementById('stage').innerHTML=`<div class="forge-stage-center"><label class="forge-jewel-quantity">Quantidade<select id="qty"><option value="1">1</option><option value="2">2</option></select></label></div><button id="fill" class="forge-fill-recipe">Preencher receita</button><div class="forge-material-sockets"><div class="forge-potion-socket"><button class="forge-material-socket"><span class="forge-gem-frame"><b>${g.filled||g.partFilled?g.qty:0}/${g.qty}</b></span><strong>${part}</strong><small>${g.filled||g.partFilled?'Encaixado · devolver':parts+' na mochila'}</small></button><button class="forge-potion-swap-button" id="swap">Trocar</button></div><button class="forge-material-socket"><span class="forge-gem-frame"><b>${g.filled?goldCost:0}/${goldCost}</b></span><strong>Ouro</strong><small>${g.gold} na bolsa</small></button></div><section class="forge-potion-workbench"><div class="forge-potion-result"><strong>${g.qty} Poção de vigor maior</strong></div><dl class="forge-cost"><div><dt>Ouro</dt><dd><strong>${goldCost.toLocaleString('pt-BR')}</strong><small>de ${g.gold.toLocaleString('pt-BR')}</small></dd></div><div><dt>Essência</dt><dd><strong>0</strong><small>de 100</small></dd></div></dl><button id="craft" class="forge-potion-craft-button" ${g.filled?'':'disabled'}>Preparar Poção de vigor maior</button></section>`;
+    const goldCost=(options.flags?.wrongCost?2000:g.receita.ouro)*g.qty,part=g.parte, parts=part==='Olho de corvo'?g.olhos:part==='Coração de serpente'?g.coracoes:g.extra;
+    document.getElementById('stage').innerHTML=`<div class="forge-stage-center"><label class="forge-jewel-quantity">Quantidade<select id="qty"><option value="1">1</option><option value="2">2</option></select></label></div><button id="fill" class="forge-fill-recipe">Preencher receita</button><div class="forge-material-sockets"><div class="forge-potion-socket"><button class="forge-material-socket"><span class="forge-gem-frame"><b>${g.filled||g.partFilled?g.qty*g.receita.quantidade:0}/${g.qty*g.receita.quantidade}</b></span><strong>${part}</strong><small>${g.filled||g.partFilled?'Encaixado · devolver':parts+' na mochila'}</small></button><button class="forge-potion-swap-button" id="swap">Trocar</button></div><button class="forge-material-socket"><span class="forge-gem-frame"><b>${g.filled?goldCost:0}/${goldCost}</b></span><strong>Ouro</strong><small>${g.gold} na bolsa</small></button></div><section class="forge-potion-workbench"><div class="forge-potion-result"><strong>${g.qty} Poção de vigor maior</strong></div><dl class="forge-cost"><div><dt>Ouro</dt><dd><strong>${goldCost.toLocaleString('pt-BR')}</strong><small>de ${g.gold.toLocaleString('pt-BR')}</small></dd></div><div><dt>Essência</dt><dd><strong>0</strong><small>de 100</small></dd></div></dl><button id="craft" class="forge-potion-craft-button" ${g.filled?'':'disabled'}>Preparar Poção de vigor maior</button></section>`;
     document.getElementById('qty').value=String(g.qty);
    };
    document.addEventListener('change',e=>{if(e.target.id==='qty'){g.qty=Number(e.target.value);g.filled=false;stage();}});
@@ -50,18 +50,19 @@ const root=path.join(__dirname,'..');
     if(id==='huntNav'){hunt.hidden=false;document.getElementById('workshop').hidden=true;render();}
     if(id==='recipe'){g.qty=options.flags?.initialTwo?2:1;g.filled=false;stage();}
     if(id==='fill'){g.fill++;g.filled=true;stage();if(options.flags?.pauseFill)aurenCacada.pausar();if(options.flags?.captchaFill)document.body.insertAdjacentHTML('beforeend','<div role="dialog" id="captcha"><h2>De quem é esta sombra?</h2><button>Outra sombra</button></div>');}
-    if(id==='craft'){g.craft++;if(options.flags?.pauseCraft)aurenCacada.pausar();if(!options.flags?.noConfirm){g.gold-=1900;if(g.parte==='Olho de corvo')g.olhos--;else if(g.parte==='Coração de serpente')g.coracoes--;else throw Error('Parte indevida');g.major++;showWorkshop();if(!options.flags?.noDialog)document.getElementById('workshop').insertAdjacentHTML('beforeend','<div role="dialog" class="workshop-craft-result"><h2>Poção de vigor maior fabricada</h2><button class="workshop-craft-result-continue" id="craftContinue">Continuar na oficina</button></div>');}}
+    if(id==='craft'){g.craft++;if(options.flags?.pauseCraft)aurenCacada.pausar();if(!options.flags?.noConfirm){g.gold-=g.receita.ouro;if(g.parte==='Olho de corvo')g.olhos-=g.receita.quantidade;else if(g.parte==='Coração de serpente')g.coracoes-=g.receita.quantidade;else if(g.parte===g.receita.ingrediente)g.extra-=g.receita.quantidade;else throw Error('Parte indevida');g.major++;showWorkshop();if(!options.flags?.noDialog)document.getElementById('workshop').insertAdjacentHTML('beforeend','<div role="dialog" class="workshop-craft-result"><h2>Poção de vigor maior fabricada</h2><button class="workshop-craft-result-continue" id="craftContinue">Continuar na oficina</button></div>');}}
     if(id==='craftContinue')e.target.closest('[role="dialog"]').remove();
     if(id==='swap'){
      const opcoes=[['Olho de corvo',g.olhos],['Coração de serpente',g.coracoes]];
-     if(g.parte==='Presa ancestral')opcoes.push([g.parte,1]);
+     if(!opcoes.some(([nome])=>nome===g.receita.ingrediente))opcoes.push([g.receita.ingrediente,g.extra]);
+     if(g.parte==='Presa ancestral'&&!opcoes.some(([nome])=>nome===g.parte))opcoes.push([g.parte,1]);
      const cartoes=opcoes.map(([nome,total])=>'<div class="forge-potion-ingredient-card"><strong>'+nome+'</strong><small>'+total+' na mochila</small><div class="forge-potion-ingredient-stepper"><input aria-label="'+nome+'" type="number" value="'+Number(nome===g.parte)+'"></div></div>').join('');
      document.getElementById('stage').insertAdjacentHTML('beforeend','<div role="dialog" id="ingredients">'+cartoes+'<button class="forge-potion-ingredient-apply" id="applyParts">Encaixar</button><button id="cancelParts" class="forge-potion-ingredient-cancel">Cancelar</button></div>');
     }
     if(id==='applyParts'){
      const escolhidos=[...document.querySelectorAll('#ingredients input')].filter(el=>el.value!=='0');
      const parte=escolhidos[0]?.getAttribute('aria-label');
-     if(escolhidos.length!==1||escolhidos[0].value!=='1'||!['Olho de corvo','Coração de serpente'].includes(parte))throw Error('Seleção incorreta de partes');
+     if(escolhidos.length!==1||escolhidos[0].value!==String(g.receita.quantidade)||!['Olho de corvo','Coração de serpente',g.receita.ingrediente].includes(parte))throw Error('Seleção incorreta de partes');
      g.parte=parte;g.partFilled=true;stage();
     }
     if(id==='cancelParts')document.getElementById('ingredients').remove();
@@ -110,6 +111,61 @@ const root=path.join(__dirname,'..');
   await t.p.locator('#fechar').click();
   assert.equal(await t.p.evaluate(()=>aurenBoss.ativo()),false);
  });
+ const craftPersonalizado={craftIngredientes:'Sangue de dragão',craftQuantidade:'2',craftOuro:'2.500'};
+ const receitaPersonalizada={ingrediente:'Sangue de dragão',quantidade:2,ouro:2500};
+ await test('usa ingrediente, quantidade e ouro personalizados',async t=>{
+  await t.start();await t.tick(14000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,1);assert.equal(g.extra,1);assert.equal(g.gold,3200);
+ },{f:99,major:0,receita:receitaPersonalizada,prefs:craftPersonalizado});
+ await test('receita configurada sem custo de ouro conserva o saldo',async t=>{
+  await t.start();await t.tick(14000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,1);assert.equal(g.gold,0);assert.equal(g.extra,1);
+ },{f:99,major:0,gold:0,receita:{...receitaPersonalizada,ouro:0},prefs:{...craftPersonalizado,craftOuro:'0'}});
+ await test('seleciona duas unidades do ingrediente personalizado no seletor',async t=>{
+  await t.start();await t.tick(14000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,1);assert.equal(g.parte,'Sangue de dragão');assert.equal(g.extra,1);
+ },{f:99,major:0,receita:receitaPersonalizada,prefs:craftPersonalizado,flags:{otherPart:true}});
+ await test('usa uma alternativa configurada com quantidade suficiente',async t=>{
+  await t.start();await t.tick(14000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,1);assert.equal(g.extra,1);assert.equal(g.olhos,0);
+ },{f:99,major:0,olhos:0,receita:receitaPersonalizada,prefs:{...craftPersonalizado,craftIngredientes:'Olho de corvo; SANGUE DE DRAGÃO'},flags:{otherPart:true}});
+ for(const fields of [{gold:2499},{extra:1}])await test('falta de recurso personalizado impede gasto '+JSON.stringify(fields),async t=>{
+  await t.start();await t.tick(14000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,0);assert.equal(g.fill,0);assert.equal(g.counts.attack,1);
+ },{f:99,major:0,receita:receitaPersonalizada,prefs:craftPersonalizado,...fields});
+ for(const receita of [{...receitaPersonalizada,ouro:2501},{...receitaPersonalizada,quantidade:3}])await test('receita diferente da configuração não autoriza gasto '+JSON.stringify(receita),async t=>{
+  await t.start();await t.tick(18000);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.craft,0);assert.equal(g.fill,0);assert.equal(g.counts.attack,0);
+  assert.match(await t.status(),/receita mudou/);
+ },{f:99,major:0,receita,prefs:craftPersonalizado});
+ await test('configuração do craft fica salva e desativa junto com a fabricação',async t=>{
+  await t.p.locator('summary').filter({hasText:'Configurar craft'}).click();
+  await t.p.locator('#craftIngredientes').fill('Escama antiga');
+  await t.p.locator('#craftQuantidade').fill('3');
+  await t.p.locator('#craftOuro').fill('3.200');
+  await t.p.reload();await t.load();
+  assert.equal(await t.p.locator('#craftIngredientes').inputValue(),'Escama antiga');
+  assert.equal(await t.p.locator('#craftQuantidade').inputValue(),'3');
+  assert.equal(await t.p.locator('#craftOuro').inputValue(),'3.200');
+  await t.p.locator('#fabricarMaior').uncheck();
+  assert.equal(await t.p.locator('#craftOuro').isDisabled(),true);
+  assert.equal(await t.p.locator('#craftIngredientes').isDisabled(),true);
+ });
+ for(const fields of [{craftIngredientes:''},{craftQuantidade:'0'},{craftQuantidade:'1.5'},{craftOuro:'-1'},{craftOuro:'abc'}])await test('recusa configuração inválida do craft '+JSON.stringify(fields),async t=>{
+  await t.start();assert.match(await t.status(),/Craft:/);
+  assert.equal(await t.p.evaluate(()=>game.craft),0);
+ },{prefs:{...craftPersonalizado,...fields}});
+ await test('fabricação desligada ignora campos incompletos da receita',async t=>{
+  await t.start();await t.tick(4400);
+  assert.equal((await t.counts()).minor,1);
+  assert.equal(await t.p.evaluate(()=>game.nav),0);
+ },{hp:20,f:40,prefs:{fabricarMaior:false,craftIngredientes:'',craftQuantidade:'',craftOuro:'bad'}});
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
