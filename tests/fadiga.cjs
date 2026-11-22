@@ -7,7 +7,7 @@ const root=path.join(__dirname,'..');
  async function test(name,run,options={}) {
   if(process.env.TEST_FILTER && !name.includes(process.env.TEST_FILTER))return;
   const p=await browser.newPage({viewport:{width:1280,height:1050}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
-  await p.route('https://fadiga.test/**',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><main><h1>Caçada</h1><button aria-pressed="true" id="mode">Só o resultado</button><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="60"></progress></div><button id="info" class="item-detail-trigger" aria-label="Detalhes do Vigor" aria-controls="details" popovertarget="details">Detalhes do Vigor</button><div id="details" class="item-detail-popover hunt-health-details" role="dialog" popover="auto"><h3>Vigor nas caçadas</h3><button id="closeInfo" class="item-detail-close" aria-label="Fechar detalhes do Vigor">Fechar</button><dl><dt>Vigor necessário</dt><dd>29%</dd><dt>Custo em Vigor</dt><dd>29%</dd></dl><div id="fatigue" class="hunt-fatigue"></div><p>Cada vitória soma 1 ponto de fadiga.</p><p id="wins">380 caçadas hoje.</p></div><section class="hunt-supplies"><button id="minor" class="hunt-potion-use" aria-label="Usar poção de vigor">+40%</button><button id="major" class="hunt-potion-use" aria-label="Usar poção de vigor maior">+100%</button></section><button id="attack">Caçar</button></main>`}));
+  await p.route('https://fadiga.test/**',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><main><h1>Caçada</h1><button aria-pressed="true" id="mode">Só Resultado</button><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="60"></progress></div><button id="info" class="item-detail-trigger" aria-label="Detalhes do Vigor" aria-controls="details" popovertarget="details">Detalhes do Vigor</button><div id="details" class="item-detail-popover hunt-health-details" role="dialog" popover="auto"><h3>Vigor nas caçadas</h3><button id="closeInfo" class="item-detail-close" aria-label="Fechar detalhes do Vigor">Fechar</button><dl><dt>Vigor necessário</dt><dd>29%</dd><dt>Custo em Vigor</dt><dd>29%</dd></dl><div id="fatigue" class="hunt-fatigue"></div><p>Cada vitória soma 1 ponto de fadiga.</p><p id="wins">380 caçadas hoje.</p></div><section class="hunt-supplies"><button id="minor" class="hunt-potion-use" aria-label="Usar poção de vigor">+40%</button><button id="major" class="hunt-potion-use" aria-label="Usar poção de vigor maior">+100%</button></section><button id="attack">Caçar</button></main>`}));
   await p.addInitScript(options=>{
    window.game={hp:options.hp??60,f:options.f??40,major:options.major??1000,minor:options.minor??1000,counts:{attack:0,major:0,minor:0,close:0},maxF:options.f??40,flags:{...options.flags}};
    const prefs={criatura:'Eco errante',modo:'pocao',atacar:'80',limite:'30',limiteAlivio:'100',economizar:false,margem:'5',continuarOculta:true,controlarFadiga:true,limiteFadiga:'100',...options.prefs};
@@ -27,6 +27,7 @@ const root=path.join(__dirname,'..');
    window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();};document.body.append(r);};
    document.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('click',e=>{
     const id=e.target.closest('button')?.id,g=game;
+    if(id==='mode'){g.modeClicks=(g.modeClicks||0)+1;document.getElementById('mode').setAttribute('aria-pressed','true');}
     if(id==='closeInfo')document.getElementById('details').hidePopover();
     if(id==='minor'){g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
     if(id==='major'){(g.usosMaior??=[]).push({hp:g.hp,f:g.f});g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
@@ -126,6 +127,15 @@ const root=path.join(__dirname,'..');
   await t.start();await t.tick(2200);
   assert.equal((await t.counts()).minor,1);assert.equal((await t.counts()).major,0);
  },{f:100,hp:20,prefs:{...aproveitar,controlarFadiga:false,folgaFadiga:'bad',vigorMaior:'bad'}});
+ for(const rotulo of ['Só Resultado','Só o resultado'])await test('seleciona a modalidade ao iniciar com o rótulo '+rotulo,async t=>{
+  await t.p.locator('#mode').evaluate((el,rotulo)=>{
+   el.textContent=rotulo;el.setAttribute('aria-pressed','false');
+  },rotulo);
+  await t.start();await t.tick(2200);
+  assert.equal(await t.p.locator('#mode').getAttribute('aria-pressed'),'true');
+  assert.equal(await t.p.evaluate(()=>game.modeClicks),1);
+  assert.equal((await t.counts()).attack,1);
+ },{hp:100,f:40});
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
