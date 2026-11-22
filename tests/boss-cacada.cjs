@@ -17,7 +17,7 @@ const root = path.join(__dirname, '..');
       window.render=()=>{
         const g=game;
         if(g.screen==='hunt'){
-          document.querySelector('main').innerHTML='<h1>Caçada</h1><button aria-pressed="true" id="mode">Só o resultado</button><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="'+g.hp+'"></progress></div><button id="attack">Caçar</button>';
+          document.querySelector('main').innerHTML='<h1>Caçada</h1><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="'+g.hp+'"></progress></div><button id="attack" class="hunt-result"><span>Só resultado</span></button>';
           return;
         }
         if(g.screen==='guild'){

@@ -24,17 +24,22 @@ const root=path.join(__dirname,'..');
     }
     card.innerHTML=`<div role="img" aria-label="Fadiga: ${g.f>=300?'Exausto':g.f>=100?'Cansado':'Descansado'}"><div class="hunt-fatigue-heading"><strong>Fadiga</strong><span>${g.f>=100?'Cansado':'Descansado'}</span></div><div class="hunt-fatigue-track" style="--hunt-fatigue-current:${g.f===0?0:Math.max(.01,g.f/Math.max(200,g.f+480)*100)}%"></div></div>${g.f>0?`<div class="hunt-fatigue-preview"><span class="hunt-fatigue-relief">−${fmt(g.f-after)} com a poção maior</span><strong><span aria-hidden="true">${fmt(g.f)} → ${fmt(after)}</span><span class="realm-sr-only">Fadiga de ${fmt(g.f)} para ${fmt(after)}</span></strong></div>`:''}<small class="hunt-fatigue-cost">Custo deste alvo segue em 29 de Vigor</small>`;
    };
-   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();};document.body.append(r);};
+   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();if(game.flags.directResult)document.getElementById('mode').disabled=false;};document.body.append(r);};
    document.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('click',e=>{
     const id=e.target.closest('button')?.id,g=game;
-    if(id==='mode'){g.modeClicks=(g.modeClicks||0)+1;document.getElementById('mode').setAttribute('aria-pressed','true');}
+    if(id==='mode'&&!g.flags.directResult){g.modeClicks=(g.modeClicks||0)+1;document.getElementById('mode').setAttribute('aria-pressed','true');}
     if(id==='closeInfo')document.getElementById('details').hidePopover();
     if(id==='minor'){g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
     if(id==='major'){(g.usosMaior??=[]).push({hp:g.hp,f:g.f});g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
-    if(id==='attack'){g.counts.attack++;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
+    if(id==='attack'||(id==='mode'&&g.flags.directResult)){g.counts.attack++;if(g.flags.directResult)document.getElementById('mode').disabled=true;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
    });});
   },options);
   await p.goto('https://fadiga.test/');await p.clock.install();
+  if(options.flags?.directResult)await p.evaluate(()=>{
+   document.getElementById('mode').outerHTML='<div class="hunt-actions"><button id="watch" class="hunt-watch">Assistir combate</button><button id="mode" class="hunt-result"><svg aria-hidden="true"><path d="M0 0"></path></svg><span>Só resultado</span></button><button id="spot" class="hunt-spot-open">Preparar spot</button></div>';
+   document.getElementById('attack').remove();
+   for(const id of ['watch','spot'])document.getElementById(id).onclick=()=>{throw Error('Ação incorreta de caçada');};
+  });
   const load=async()=>{await p.addScriptTag({path:path.join(root,'avisos.js')});await p.addScriptTag({path:path.join(root,'content.js')});await p.waitForFunction(()=>window.aurenCacada);};await load();
   const t={p,load,start:()=>p.evaluate(()=>aurenCacada.iniciar()),tick:n=>p.clock.runFor(n),diag:()=>p.evaluate(()=>aurenCacada.diagnostico()),counts:()=>p.evaluate(()=>game.counts),set:fields=>p.evaluate(fields=>{Object.assign(game,fields);render();},fields),open:()=>p.locator('#info').click(),status:()=>p.locator('#status').textContent()};
   try{await run(t);assert.deepEqual(errors,[]);count++;console.log('PASS:',name);}finally{await p.close();}
@@ -136,6 +141,39 @@ const root=path.join(__dirname,'..');
   assert.equal(await t.p.evaluate(()=>game.modeClicks),1);
   assert.equal((await t.counts()).attack,1);
  },{hp:100,f:40});
+ await test('botão direto Só resultado não é clicado durante preparação',async t=>{
+  await t.start();
+  assert.equal((await t.counts()).attack,0);
+  assert.equal(await t.p.locator('#iniciar').isDisabled(),true);
+  await t.tick(2200);
+  assert.equal((await t.counts()).attack,1);
+  await t.tick(8800);
+  assert.equal((await t.counts()).attack,1);
+  assert.equal((await t.diag()).pendente,'ataque');
+ },{hp:100,f:40,flags:{directResult:true}});
+ await test('botão direto aguarda seleção da criatura antes de atacar',async t=>{
+  await t.p.locator('#monster').evaluate(el=>{
+   el.setAttribute('aria-pressed','false');el.onclick=()=>el.setAttribute('aria-pressed','true');
+  });
+  await t.start();await t.tick(2200);
+  assert.equal((await t.counts()).attack,0);
+  await t.tick(2200);
+  assert.equal((await t.counts()).attack,1);
+ },{hp:100,f:40,flags:{directResult:true}});
+ await test('botão direto respeita redução de fadiga antes da luta',async t=>{
+  await t.start();await t.tick(2200);
+  assert.equal((await t.counts()).attack,0);assert.equal((await t.counts()).major,1);
+  await t.tick(4400);assert.equal((await t.counts()).attack,1);
+ },{hp:60,f:99,flags:{directResult:true}});
+ await test('botão direto não luta com vigor abaixo da configuração',async t=>{
+  await t.start();await t.tick(10000);
+  assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});
+ },{hp:20,f:40,flags:{directResult:true},prefs:{modo:'natural'}});
+ await test('botão direto fecha resultado e repete o ciclo com confirmação',async t=>{
+  await t.start();await t.tick(30000);
+  const counts=await t.counts();
+  assert.ok(counts.attack>=2);assert.ok(counts.close>=2);
+ },{hp:100,f:40,flags:{directResult:true,autoResult:true}});
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

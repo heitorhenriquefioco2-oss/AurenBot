@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.39, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.40, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Instalar
 
@@ -19,8 +19,8 @@ Extensão Chrome de caçada v3.3.39, com abas de Caçada, Expedição, Extras e 
 - Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
 - Para usar na VPS, marque **Continuar mesmo sem olhar a aba do jogo** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
-- Ao clicar em **Iniciar** no painel, o bot seleciona **Só Resultado** e valida as configurações. Uma expedição ativa pode continuar em paralelo. Se a manutenção de expedições estiver ativada, confere ou inicia a jornada e retorna à **Caçada**, reconfirmando **Só Resultado** antes de continuar.
-- O reconhecimento da modalidade também aceita o nome anterior, **Só o resultado**.
+- Ao clicar em **Iniciar** no painel, o bot valida as configurações e prepara a Caçada. Na interface atual, **Só resultado** é o próprio botão de ataque. O bot clica nele uma vez por luta, depois de conferir vigor, fadiga e criatura. Uma expedição ativa pode continuar em paralelo. Após conferir ou iniciar uma jornada, retorna à **Caçada** e reavalia essas condições antes de atacar.
+- Interfaces anteriores com a opção selecionável **Só o resultado** também são reconhecidas.
 - Configure a criatura e os limites na aba **Caçada**. Sem uma criatura configurada ou com valores inválidos, Iniciar mantém as duas automações paradas.
 - Pausar, ocultar o painel ou alterar qualquer configuração cancela a preparação e a manutenção automática de expedições. Uma jornada que já partiu continua no jogo.
 - O resultado da caçada é fechado pelo botão **Continuar**; depois o bot reavalia o vigor e repete o ciclo.
@@ -51,7 +51,7 @@ Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusiv
 
 Marque **Tentar continuar sozinho após um erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
-Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, Só Resultado confirmado, a criatura configurada selecionada, o botão de caçar habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
+Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, o controle Só resultado identificado, a criatura configurada selecionada, o botão de ataque habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
 **Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar mesmo sem olhar a aba do jogo**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
@@ -82,7 +82,7 @@ Na aba **Caçada**, ative o controle de fadiga e marque **Fabricar poções de v
 
 Abra **Configurar craft da poção maior** e informe **Ingrediente(s) aceito(s)**, **Quantidade do ingrediente por poção** e **Ouro por poção** de acordo com a receita atual do jogo. Para permitir alternativas, separe os nomes exatos por ponto e vírgula. O bot usa um desses tipos por poção, sempre na quantidade configurada. Os campos começam com os valores da versão anterior (Olho de corvo ou Coração de serpente, quantidade 1 e ouro 1.900), e suas alterações ficam salvas neste perfil. Quando o jogo mudar a receita, atualize os campos e clique em **Iniciar**.
 
-Antes de preencher, confere as quantidades e o custo na Oficina. Mantém o ingrediente sugerido se ele estiver na lista e houver quantidade suficiente. Caso contrário, procura outra alternativa configurada no seletor. Confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada**, marca **Só Resultado** e confere a fadiga. Não compra ingredientes.
+Antes de preencher, confere as quantidades e o custo na Oficina. Mantém o ingrediente sugerido se ele estiver na lista e houver quantidade suficiente. Caso contrário, procura outra alternativa configurada no seletor. Confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada** e confere a fadiga antes de usar Só resultado. Não compra ingredientes.
 
 **Se nenhuma alternativa tiver a quantidade necessária ou não houver ouro suficiente**, volta à Caçada e ignora o limite de fadiga enquanto não puder fabricar. Continua recuperando vigor só com a poção comum, conforme suas escolhas. Se a fadiga ainda exigir uma poção maior, confere os recursos novamente a cada minuto, entre as ações do jogo. Se receber uma poção maior ou voltar a ter ingredientes, aplica o limite de fadiga de novo. Desmarcar a fabricação automática também encerra essa exceção.
 
@@ -169,7 +169,7 @@ Caçadas e expedições podem acontecer juntas. O bot não solicita nem aciona P
 
 Na aba **Expedição**, marque **Iniciar outra expedição quando a atual terminar** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
 
-Se já houver uma jornada ativa, ela continua com sua duração original. Quando terminar, a próxima usa a duração configurada. Se houver uma jornada pausada, tenta retomá-la, preservando sua duração. Sem jornada ativa ou pausada, abre Expedição, confirma a duração e clica uma única vez em Explorar. Aguarda o jogo confirmar a partida, retorna para Caçada e reconfirma Só Resultado.
+Se já houver uma jornada ativa, ela continua com sua duração original. Quando terminar, a próxima usa a duração configurada. Se houver uma jornada pausada, tenta retomá-la, preservando sua duração. Sem jornada ativa ou pausada, abre Expedição, confirma a duração e clica uma única vez em Explorar. Aguarda o jogo confirmar a partida, retorna para Caçada e confere as condições para o próximo clique em Só resultado.
 
 Enquanto a caçada está ativa, verifica a necessidade de uma nova jornada a cada 30 segundos, entre as ações da caçada. Não navega com um ataque, poção ou resultado ainda aguardando confirmação. Durante a navegação da expedição, o ciclo não clica na caçada. A alternância entre as abas do painel não pausa o bot; mudar as configurações pausa para aguardar um novo Iniciar.
 
