@@ -20,7 +20,7 @@
     const dispositivos = valor?.versao === 2 ? ['windows','android'].filter(id=>valor.dispositivos?.[id]?.ativado === true) : [valor?.destino === 'android' ? 'android' : 'windows'];
     configAvisos = {ativadas:valor?.ativadas === true, repetir:valor?.repetir !== false, dispositivos};
     avisoAtual = null;
-    informarAvisos(configAvisos.ativadas ? 'Avisos ligados. Vou avisar quando o jogo pedir sua resposta.' : 'Avisos desligados.');
+    informarAvisos(configAvisos.ativadas ? 'Avisos ligados.' : 'Avisos desligados.');
   }
   try {
     globalThis.chrome?.storage?.local?.get('aurenNotificacoesV1').then(saved=>{if (!revisaoAvisos) carregarAvisos(saved.aurenNotificacoesV1);},()=>{if (!revisaoAvisos) carregarAvisos(null);});
@@ -36,27 +36,27 @@
     const episodio = avisoAtual;
     const nome = id=>id === 'android' ? 'Android' : 'Windows';
     const informar = ()=>{
-      if (avisoAtual === episodio) informarAvisos(configAvisos.dispositivos.map(id=>`${nome(id)}: ${episodio.dispositivos[id]?.status || 'esperando para enviar'}`).join(' · '));
+      if (avisoAtual === episodio) informarAvisos(configAvisos.dispositivos.map(id=>`${nome(id)}: ${episodio.dispositivos[id]?.status || 'aguardando envio'}`).join(' · '));
     };
     for (const destino of configAvisos.dispositivos) {
-      const aviso = episodio.dispositivos[destino] ||= {id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null, status:'esperando para enviar'};
+      const aviso = episodio.dispositivos[destino] ||= {id:crypto.randomUUID(), enviando:false, tentativa:null, enviado:null, status:'aguardando envio'};
       const agora = Date.now();
       if (aviso.enviando || (aviso.enviado !== null && (!configAvisos.repetir || agora - aviso.enviado < 60000)) ||
           (aviso.tentativa !== null && agora - aviso.tentativa < 30000)) continue;
       if (aviso.enviado !== null) { aviso.id = crypto.randomUUID(); aviso.enviado = null; }
-      aviso.enviando = true; aviso.tentativa = agora; aviso.status = 'enviando aviso…'; informar();
+      aviso.enviando = true; aviso.tentativa = agora; aviso.status = 'enviando…'; informar();
       Promise.resolve().then(()=>chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'captcha', eventoId:aviso.id, tipo:episodio.tipo, destino}))
         .then(result=>{
-          if (!result?.ok) throw Error(result?.erro || 'O app ainda não confirmou o aviso.');
-          aviso.enviado = Date.now(); aviso.status = 'o app recebeu o aviso'; informar();
-        }).catch(error=>{aviso.status = `não consegui enviar: ${error.message}`; informar();})
+          if (!result?.ok) throw Error(result?.erro || 'Sem confirmação do app.');
+          aviso.enviado = Date.now(); aviso.status = 'aviso recebido'; informar();
+        }).catch(error=>{aviso.status = `falha no envio: ${error.message}`; informar();})
         .finally(()=>{aviso.enviando = false;});
     }
   }
 
   function localizarVerificacaoHumana() {
     const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"]')]
-      .filter(el => visivel(el) && ['a guarda pede um sinal', 'de quem e esta sombra'].includes(normal(el.textContent).replace(/\?$/, '')));
+      .filter(el => ['a guarda pede um sinal', 'de quem e esta sombra'].includes(normal(el.textContent).replace(/\?$/, '')) && visivel(el));
     if (!titulos.length) return null;
     const paineis = [...new Set(titulos.map(titulo => {
       const dialogo = titulo.closest('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]');
@@ -71,7 +71,7 @@
     if (paineis.length !== 1) return { painel: null, botao: null, tipo };
     const painel = paineis[0];
     const botoes = [...painel.querySelectorAll('button, [role="button"]')]
-      .filter(botao => visivel(botao) && /^apresentar (?:o )?selo$/.test(normal(botao.getAttribute('aria-label') || botao.textContent)));
+      .filter(botao => /^apresentar (?:o )?selo$/.test(normal(botao.getAttribute('aria-label') || botao.textContent)) && visivel(botao));
     return { painel, botao: botoes.length === 1 ? botoes[0] : null, tipo };
   }
   function registrarVerificacao(presente) {
@@ -83,20 +83,20 @@
     verificacaoHumana = presente;
     if (!presente) {
       seloPronto = false; tipoVerificacao = '';
-      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Verificação fechada. Vou avisar se aparecer outra.' : 'Avisos desligados.'); }
+      if (avisoAtual) { avisoAtual = null; informarAvisos(configAvisos.ativadas ? 'Avisos ligados. Verificação encerrada.' : 'Avisos desligados.'); }
     }
   }
 
   function avisosAtualizacao() {
     const candidatos = [];
     for (const botao of document.querySelectorAll('button, [role="button"]')) {
-      if (!visivel(botao) || normal(botao.textContent) !== 'atualizar') continue;
+      if (normal(botao.textContent) !== 'atualizar' || !visivel(botao)) continue;
       let painel = botao.parentElement;
       for (let nivel = 0; painel && nivel < 8 && painel !== document.body && painel !== document.documentElement; nivel++, painel = painel.parentElement) {
         const t = normal(painel.textContent);
         if (t.length > 1200) break;
         if (!t.includes('nova versao disponivel') || !t.includes('auren online foi atualizado') || !t.includes('recarregue para continuar')) continue;
-        const botoes = [...painel.querySelectorAll('button, [role="button"]')].filter(b => visivel(b) && normal(b.textContent) === 'atualizar');
+        const botoes = [...painel.querySelectorAll('button, [role="button"]')].filter(b => normal(b.textContent) === 'atualizar' && visivel(b));
         if (botoes.length === 1) candidatos.push({ painel, botao, atualizacao: true });
         break;
       }
@@ -110,7 +110,7 @@
     const rotuloFechar = /^(?:fechar|close)(?: (?:o )?(?:painel|check[-\s\u2010-\u2015]*in(?: diario)?))?$|^[×✕✖x]$/;
     // O check-in pode ser um painel sem role de diálogo. Exige o título e o texto próprio dele.
     const titulos = [...document.querySelectorAll('h1,h2,h3,h4,[role="heading"],div,span')]
-      .filter(el => visivel(el) && tituloCheckin.test(normal(el.textContent)));
+      .filter(el => tituloCheckin.test(normal(el.textContent)) && visivel(el));
     for (const titulo of titulos) {
       let painel = titulo.parentElement;
       for (let nivel = 0; painel && nivel < 8 && painel !== document.body && painel !== document.documentElement; nivel++, painel = painel.parentElement) {
@@ -165,7 +165,7 @@
       }
       // Alguns tutoriais usam cartões inline, sem semântica de diálogo.
       for (const botao of document.querySelectorAll('button')) {
-        if (visivel(botao) && /^entendi[\s✓✔.!]*$/.test(normal(botao.textContent)) &&
+        if (/^entendi[\s✓✔.!]*$/.test(normal(botao.textContent)) && visivel(botao) &&
             !candidatos.some(c => c.botao === botao)) {
           candidatos.push({ painel: botao, botao });
         }
@@ -193,8 +193,9 @@
     }
   }
 
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver(registros => {
     if (agendado || !ativo) return;
+    if (registros.every(r=>r.target instanceof Element && r.target.closest('#auren-cacada-v3'))) return;
     agendado = true;
     queueMicrotask(() => { agendado = false; verificar(); });
   });

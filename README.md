@@ -1,6 +1,10 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.40, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.41, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+
+## Resposta da automação
+
+A caçada e o Boss reagem às mudanças da interface, agrupadas em 150 ms. A cada resposta confirmada, reavaliam a próxima ação. A verificação periódica de 2,2 segundos e os pulsos de segundo plano seguem ativos. As confirmações, os limites de recursos e o intervalo de 15 minutos do Boss continuam sendo conferidos antes dos cliques. As regras e preferências salvas usam os mesmos campos.
 
 ## Instalar
 
@@ -16,8 +20,8 @@ Extensão Chrome de caçada v3.3.40, com abas de Caçada, Expedição, Extras e 
 - Informe o nome exato da criatura disponível na região aberta.
 - Escolha o vigor mínimo para atacar e o modo de recuperação.
 - Escolha até qual porcentagem de vigor usar a poção comum. Para usar a maior, ative o controle de fadiga.
-- Ative **Economizar poções** e informe quantos pontos percentuais vale esperar regenerar.
-- Para usar na VPS, marque **Continuar mesmo sem olhar a aba do jogo** antes de clicar em Iniciar.
+- Ative **Poupar poções** e informe a **Margem para esperar (%)**.
+- Para usar na VPS, marque **Continuar em segundo plano** antes de clicar em Iniciar.
 - Ao carregar, o bot apenas abre **Caçada** e mostra o painel dentro do jogo. Não seleciona a modalidade, não solicita pausa de expedição e não inicia a caçada nesse momento.
 - Ao clicar em **Iniciar** no painel, o bot valida as configurações e prepara a Caçada. Na interface atual, **Só resultado** é o próprio botão de ataque. O bot clica nele uma vez por luta, depois de conferir vigor, fadiga e criatura. Uma expedição ativa pode continuar em paralelo. Após conferir ou iniciar uma jornada, retorna à **Caçada** e reavalia essas condições antes de atacar.
 - Interfaces anteriores com a opção selecionável **Só o resultado** também são reconhecidas.
@@ -37,27 +41,27 @@ A **Poção de vigor maior** fica reservada para reduzir a fadiga quando o contr
 
 ## VPS e aba oculta
 
-A opção **Continuar mesmo sem olhar a aba do jogo** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém a caçada e os extras quando a aba fica oculta, inclusive ao minimizar a janela ou desconectar o RDP. A extensão mantém as atualizações da interface do jogo e usa um alarme do Chrome a cada 30 segundos para acompanhar as ações mesmo quando os temporizadores da aba atrasam. Enquanto houver uma automação autorizada, protege essa aba contra descarte automático e restaura a configuração anterior ao parar. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
+A opção **Continuar em segundo plano** vem desmarcada e fica salva neste perfil do Chrome. Com ela marcada, o bot mantém a caçada e os extras quando a aba fica oculta, inclusive ao minimizar a janela ou desconectar o RDP. A extensão mantém as atualizações da interface do jogo e usa um alarme do Chrome a cada 30 segundos para acompanhar as ações mesmo quando os temporizadores da aba atrasam. Enquanto houver uma automação autorizada, protege essa aba contra descarte automático e restaura a configuração anterior ao parar. Alterar essa opção pausa a caçada, assim como as demais configurações; clique em **Iniciar** para aplicar.
 
 O Chrome e o jogo precisam continuar abertos na VPS. Desconectar o RDP é diferente de sair/encerrar a sessão do Windows, que fecha os aplicativos. Os pulsos em segundo plano podem ser atrasados pelo Chrome; o intervalo nominal de 2,2 segundos da aba visível não é garantido com a janela minimizada. Na aba oculta, os prazos de navegação e confirmação passam para pelo menos dois minutos para acomodar esses atrasos. A extensão requer Chrome 120 ou mais recente. Os controles **Pausar** e **Ocultar painel** continuam pausando a caçada, e as verificações de confirmação das ações continuam ativas.
 
 ## Falhas temporárias na leitura do vigor
 
-Se o bot não conseguir ler o vigor do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente a cada ciclo (intervalo nominal de 2,2 segundos). Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando o vigor voltar a ser identificado, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
+Se o bot não conseguir ler o vigor do herói e não houver uma ação aguardando confirmação, mantém o ciclo ativo e tenta ler novamente ao mudar a interface e pelo ciclo periódico de 2,2 segundos. Enquanto a leitura estiver indisponível, não seleciona criaturas, não ataca nem usa poções. Quando o vigor voltar a ser identificado, reavalia as configurações com a leitura atual e continua automaticamente, sem precisar recarregar a página ou clicar em Iniciar.
 
 Os controles Pausar e Ocultar painel continuam interrompendo a caçada, inclusive durante essa espera. As ações já pendentes continuam exigindo confirmação e respeitando seu prazo original, para evitar cliques duplicados. Uma leitura válida de vigor zero permite recuperação; vigor desconhecido não autoriza atacar nem usar poções. A extensão não recarrega a página automaticamente; se a interface não se recuperar, a mensagem de espera permanece no painel.
 
 ## Reinício automático após paradas por erro
 
-Marque **Tentar continuar sozinho após um erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
+Marque **Retomar após erro** e clique em **Iniciar** para armar a recuperação. A opção vem desmarcada e fica salva neste perfil. Uma preferência salva não inicia uma nova página por conta própria. Quando uma falha pausa uma caçada que estava em execução, o bot verifica a cada 10 segundos se pode repetir a preparação e retomar com as mesmas escolhas. Se a preparação falhar novamente, mantém as tentativas nesse intervalo.
 
 Para retomar, aguarda uma leitura válida de vigor entre zero e 100%. Poções sem recuperação confirmada não são repetidas. Para um ataque sem resultado após 45 segundos, procura primeiro o botão **Ver resultados pendentes** e tenta abri-lo uma vez. Se não houver resultados pendentes, exige a tela de Caçada, o controle Só resultado identificado, a criatura configurada selecionada, o botão de ataque habilitado e nenhum diálogo aberto. Após 10 segundos de estabilidade desses controles, encerra a espera pelo resultado ausente e reavalia um novo ciclo com o vigor atual. Isso confirma que a interface libera outro ciclo, sem afirmar se o ataque anterior foi processado. Mudanças nos controles, bloqueios e verificações reiniciam a observação. Se essas condições não forem atendidas, continua aguardando sem atacar. Expedições ativas não bloqueiam a caçada nem o reinício.
 
-**Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar mesmo sem olhar a aba do jogo**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
+**Pausar**, **Ocultar painel**, **Pausar e conferir** e alterações nas configurações cancelam a recuperação; clique em **Iniciar** para armá-la de novo. A pausa por aba oculta continua sendo respeitada; para usar em segundo plano, marque também **Continuar em segundo plano**. Não recarrega a página nem reinicia um navegador fechado ou congelado.
 
 ## Limite de fadiga
 
-Na aba **Caçada**, marque **Manter a fadiga abaixo do limite** e preencha **Limite de fadiga, em pontos**. A opção vem desligada e fica salva neste perfil do Chrome. Clique em **Iniciar** para aplicar. Use um número inteiro de 2 ou mais; esse valor é uma contagem de pontos, não uma porcentagem de vigor.
+Na aba **Caçada**, marque **Controlar fadiga** e preencha **Limite de fadiga (pontos)**. A opção vem desligada e fica salva neste perfil do Chrome. Clique em **Iniciar** para aplicar. Use um número inteiro de 2 ou mais; esse valor é uma contagem de pontos, não uma porcentagem de vigor.
 
 O vigor e a fadiga são controles diferentes. Com esta opção ligada:
 
@@ -66,7 +70,7 @@ O vigor e a fadiga são controles diferentes. Com esta opção ligada:
 - Cada vitória soma 1 de fadiga. Em condições normais, antes de lutar, o bot confere se a próxima vitória alcançaria o limite. Com limite **100**, por exemplo, só luta quando a vitória ainda deixa a fadiga em no máximo **99**. Se estiver em 99, tenta baixar a fadiga primeiro. Limites pequenos podem gastar mais poções maiores.
 - A confirmação da maior depende de a fadiga cair para o valor previsto nos detalhes do jogo. Encher o vigor, sozinho, não libera outro clique. Mantém as regras de espera, erro e retomada, inclusive após a atualização do jogo.
 
-Para aproveitar melhor a recuperação de vigor da maior, ative **Gastar mais vigor antes de usar a poção maior**. A opção vem desmarcada. Configure a **Fadiga extra permitida** (padrão **5 pontos**) e o **Vigor para usar a maior** (padrão **30%**). Ao alcançar o limite normal, continua caçando enquanto o vigor estiver acima desse percentual, houver pelo menos 30% para lutar e a próxima vitória couber na margem. Nesse período, pode caçar abaixo do vigor mínimo habitual e prioriza a maior quando precisar recuperar.
+Para aproveitar melhor a recuperação de vigor da maior, ative **Gastar vigor antes da maior**. A opção vem desmarcada. Configure **Fadiga extra (pontos)** (padrão **5 pontos**) e **Usar maior com vigor até (%)** (padrão **30%**). Ao alcançar o limite normal, continua caçando enquanto o vigor estiver acima desse percentual, houver pelo menos 30% para lutar e a próxima vitória couber na margem. Nesse período, pode caçar abaixo do vigor mínimo habitual e prioriza a maior quando precisar recuperar.
 
 Com limite **100**, margem **5** e vigor **30%**, por exemplo, pode chegar a **105 de fadiga** para gastar mais vigor. Usa a maior quando o vigor chegar a 30%, ficar insuficiente para continuar ou a próxima vitória exceder 105. Após a redução confirmada, reavalia as condições. Os valores ficam salvos neste perfil. Desligar o controle de fadiga desativa também esse aproveitamento.
 
@@ -78,9 +82,9 @@ Desligar o controle de fadiga interrompe o uso automático da poção maior. A r
 
 ## Fabricar poções maiores
 
-Na aba **Caçada**, ative o controle de fadiga e marque **Fabricar poções de vigor maior se necessário**. A escolha fica salva. Quando a fadiga exigir uma poção maior e o estoque estiver zerado, o bot vai à **Oficina**, escolhe **Caldeirão → Poções → Poção de vigor maior** e seleciona **uma unidade**.
+Na aba **Caçada**, ative o controle de fadiga e marque **Fabricar poção maior**. A escolha fica salva. Quando a fadiga exigir uma poção maior e o estoque estiver zerado, o bot vai à **Oficina**, escolhe **Caldeirão → Poções → Poção de vigor maior** e seleciona **uma unidade**.
 
-Abra **Configurar craft da poção maior** e informe **Ingrediente(s) aceito(s)**, **Quantidade do ingrediente por poção** e **Ouro por poção** de acordo com a receita atual do jogo. Para permitir alternativas, separe os nomes exatos por ponto e vírgula. O bot usa um desses tipos por poção, sempre na quantidade configurada. Os campos começam com os valores da versão anterior (Olho de corvo ou Coração de serpente, quantidade 1 e ouro 1.900), e suas alterações ficam salvas neste perfil. Quando o jogo mudar a receita, atualize os campos e clique em **Iniciar**.
+Abra **Configurar craft** e informe **Ingredientes permitidos**, **Quantidade por poção** e **Ouro por poção** de acordo com a receita atual do jogo. Para permitir alternativas, separe os nomes exatos por ponto e vírgula. O bot usa um desses tipos por poção, sempre na quantidade configurada. Os campos começam com os valores da versão anterior (Olho de corvo ou Coração de serpente, quantidade 1 e ouro 1.900), e suas alterações ficam salvas neste perfil. Quando o jogo mudar a receita, atualize os campos e clique em **Iniciar**.
 
 Antes de preencher, confere as quantidades e o custo na Oficina. Mantém o ingrediente sugerido se ele estiver na lista e houver quantidade suficiente. Caso contrário, procura outra alternativa configurada no seletor. Confere os encaixes e confirma a fabricação uma vez. Depois que o jogo confirma o resultado ou mostra a nova poção no estoque, volta à **Caçada** e confere a fadiga antes de usar Só resultado. Não compra ingredientes.
 
@@ -90,7 +94,7 @@ Uma leitura incompleta, receita diferente ou botão bloqueado não é tratada co
 
 ## Boss da guilda e do mundo
 
-Abra a aba **Extras** do painel, escolha **Boss da tela atual**, **Boss da guilda** ou **Boss do mundo** e clique em **Iniciar Boss**. O extra funciona com a caçada ativa ou parada. As configurações de criatura e vigor são usadas apenas pela caçada. Ao escolher a tela atual, o extra reconhece o Boss aberto e continua acompanhando esse tipo; fora de um combate, começa pelo Boss do mundo. O destino da guilda abre **Guildas → Boss** automaticamente.
+Abra a aba **Extras** do painel, escolha **Tela atual**, **Guilda** ou **Mundo** e clique em **Iniciar Boss**. O extra funciona com a caçada ativa ou parada. As configurações de criatura e vigor são usadas apenas pela caçada. Ao escolher a tela atual, o extra reconhece o Boss aberto e continua acompanhando esse tipo; fora de um combate, começa pelo Mundo. O destino da guilda abre **Guildas → Boss** automaticamente.
 
 Em cada investida, compara o dano exibido dos ataques disponíveis e escolhe o maior. Respeita o limite de **8 ataques por pessoa em cada encontro**, contando também as investidas feitas manualmente, e o intervalo de **15 minutos** informado pelo jogo. O primeiro ataque é feito assim que o combate estiver liberado, sem espera baseada no horário salvo de outro encontro. Confere a vida, o estado do encontro e o botão de ataque liberado pelo jogo.
 
@@ -98,14 +102,14 @@ Com a caçada ligada, aguarda a ação em andamento terminar, visita o Boss e vo
 
 Após atacar, aguarda sua contagem de investidas aumentar antes de continuar. Na guilda, lê a indicação como **3/8 investidas usadas** e o relógio de **Próximo ataque em**. Os registros de confirmação e intervalo da guilda e do mundo são independentes. Uma confirmação ausente pausa o modo e mantém o registro nesta aba, inclusive após recarregar a página. Ao clicar em Iniciar Boss novamente, confere essa contagem antes de autorizar outro golpe. Uma recarga começa com o Boss pausado. Clique em Iniciar Boss para continuar.
 
-**Iniciar Boss** e **Pausar Boss** controlam o extra. Os botões gerais **Iniciar** e **Pausar** controlam a caçada, mantendo o extra independente. Trocar o destino do Boss interrompe apenas o extra. **Ocultar painel** interrompe ambos. A preferência **Continuar mesmo sem olhar a aba do jogo** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. Uma recarga deixa o extra parado até clicar em Iniciar Boss novamente.
+**Iniciar Boss** e **Pausar Boss** controlam o extra. Os botões gerais **Iniciar** e **Pausar** controlam a caçada, mantendo o extra independente. Trocar o destino do Boss interrompe apenas o extra. **Ocultar painel** interrompe ambos. A preferência **Continuar em segundo plano** também se aplica ao Boss. Verificações e janelas abertas aguardam sua intervenção. Uma recarga deixa o extra parado até clicar em Iniciar Boss novamente.
 
 ## Pausas automáticas
 
-Na aba **Pausas**, marque **Fazer pausas automáticas**. Escolha duas faixas em minutos:
+Na aba **Pausas**, marque **Pausas automáticas**. Escolha duas faixas em minutos:
 
-- **Tempo antes da pausa**: o mínimo e o máximo de tempo que o bot deve ficar ligado antes de descansar. O padrão é de 20 a 40 minutos.
-- **Tempo de descanso**: o mínimo e o máximo que cada pausa pode durar. O padrão é de 2 a 5 minutos.
+- **Caçar de (min)** e **Até (min)** definem a faixa de tempo antes da pausa. O padrão é de 20 a 40 minutos.
+- **Descansar de (min)** e **Até (min)** definem a faixa de duração da pausa. O padrão é de 2 a 5 minutos.
 
 Use números inteiros de 1 a 1440 minutos, sempre com o mínimo igual ou menor que o máximo. O sorteio inclui os valores mínimo e máximo. Para um tempo fixo, coloque o mesmo número nos campos mínimo e máximo.
 
@@ -115,7 +119,7 @@ A pausa só começa entre as ações. O bot espera o ataque, a poção ou o fech
 
 Durante o descanso, não luta, não usa poções e não inicia ou retoma expedições. Uma expedição que já partiu continua no jogo; se terminar, a próxima aguarda o fim do descanso. Os avisos que você ativou e o fechamento de avisos do jogo continuam funcionando. Se uma verificação estiver aberta ao terminar o descanso, o bot espera sua resposta antes de voltar.
 
-**Pausar**, **Ocultar painel**, **Pausar e conferir** ou mudar uma opção cancela os horários sorteados e impede a volta sozinha. Clique em **Iniciar** para sortear de novo. A opção **Continuar mesmo sem olhar a aba do jogo** também continua sendo respeitada, inclusive ao preparar a volta do descanso.
+**Pausar**, **Ocultar painel**, **Pausar e conferir** ou mudar uma opção cancela os horários sorteados e impede a volta sozinha. Clique em **Iniciar** para sortear de novo. A opção **Continuar em segundo plano** também continua sendo respeitada, inclusive ao preparar a volta do descanso.
 
 Uma recarga comum mantém o bot parado. Na atualização do jogo acionada pelo bot, ele guarda o horário da pausa e, se estiver descansando, mantém o tempo restante sem iniciar ações ou navegar antes da hora. Essa retomada usa a mesma janela de dois minutos descrita na atualização automática. O relógio do computador e a disponibilidade do Chrome determinam os horários; uma aba lenta ou suspensa pode atrasá-los.
 
@@ -123,11 +127,11 @@ Uma recarga comum mantém o bot parado. Na atualização do jogo acionada pelo b
 
 Para receber no Windows, execute o **AurenBot Alertas** no PC que receberá o aviso. O receptor abre uma página local com seu endereço, chave de acesso, teste de som e últimos avisos. As instruções completas e os comandos para compilar estão em [windows-alertas/README.md](windows-alertas/README.md).
 
-No painel da extensão, abra **Configurar avisos**. Ative **Receber avisos** e marque **Enviar para o PC**, **Enviar para o celular** ou os dois. Cada dispositivo possui seus próprios campos de endereço e chave. Preencha os dados de ambos, clique em **Salvar configurações** e permita acesso aos endereços escolhidos. Use **Testar no PC**, **Testar no celular** ou **Testar avisos** para verificar cada conexão.
+No painel da extensão, abra **Avisos**. Ative **Receber avisos** e marque **Enviar para o PC**, **Enviar para o celular** ou os dois. Cada aparelho tem **Endereço do app** e **Código de acesso** próprios. Preencha os dados de ambos, clique em **Salvar configurações** e permita acesso aos endereços escolhidos. Use **Testar no PC**, **Testar no celular** ou **Testar avisos** para verificar cada conexão.
 
 A partir da v3.3.23, os dois dispositivos recebem simultaneamente. O endereço e a chave de cada um ficam salvos localmente neste perfil do Chrome, inclusive quando seu envio é desmarcado ou quando as notificações são desativadas. Reabrir a página restaura os dois perfis; não é necessário copiar os dados novamente ao alternar o envio.
 
-A configuração antiga de um único receptor é recuperada no perfil Windows ou Android conforme a escolha que estava salva. Se não havia uma escolha registrada, mantém os dados em Windows. O outro perfil fica vazio e desmarcado para você preencher. Nada é copiado entre as chaves dos dois dispositivos. Clique em Salvar para gravar o formato novo.
+A configuração antiga de um único receptor é recuperada no perfil Windows ou Android conforme a escolha que estava salva. Se não havia uma escolha registrada, mantém os dados em Windows. O outro perfil fica vazio e desmarcado para você preencher. Nada é copiado entre as chaves dos dois dispositivos. Clique em **Salvar configurações** para gravar o formato novo.
 
 Se o jogo roda na VPS, use o IP **Tailscale de cada receptor** e mantenha a VPS, o PC e o celular conectados à mesma rede Tailscale. `127.0.0.1` só serve quando jogo e receptor estão no mesmo computador. O executável do Windows e o APK Android existentes continuam compatíveis; não precisam ser reinstalados para usar o envio simultâneo.
 
@@ -143,7 +147,7 @@ Os receptores precisam permanecer ligados. Fechar a aba de configuração do Win
 
 O aplicativo **AurenBot Alertas para Android 1.0.0** recebe os mesmos avisos, com notificação nativa, som e vibração opcionais. Requer Android 8 ou posterior e funciona com a extensão v3.3.20 ou posterior, sem alterar a automação.
 
-Instale o APK no celular, permita notificações e toque em **Ligar avisos**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Configurar avisos** da extensão, marcando **Enviar para o celular** e preenchendo os campos do celular. Salve, autorize o endereço e envie um teste. Marque também Windows para receber nos dois ao mesmo tempo.
+Instale o APK no celular, permita notificações e toque em **Ligar avisos**. Conecte o celular e a VPS ao Tailscale e copie o endereço e a chave exibidos no aplicativo para o menu **Avisos** da extensão, marcando **Enviar para o celular** e preenchendo os campos do celular. Salve, autorize o endereço e envie um teste. Marque também Windows para receber nos dois ao mesmo tempo.
 
 Para receber com a tela apagada, mantenha o serviço ligado e permita uso de bateria sem restrições para o aplicativo e o Tailscale. O receptor mantém a CPU acordada enquanto ligado, consumindo mais bateria; as políticas de rede e bateria do Android/fabricante ainda se aplicam. Não usa push externo. Após reiniciar o celular, abra o aplicativo e inicie novamente. Consulte [as instruções e o código do APK](android-alertas/README.md).
 
@@ -167,7 +171,7 @@ O item do menu é localizado prioritariamente pelo título exato `title="Caçada
 
 Caçadas e expedições podem acontecer juntas. O bot não solicita nem aciona Pausar expedição para caçar.
 
-Na aba **Expedição**, marque **Iniciar outra expedição quando a atual terminar** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
+Na aba **Expedição**, marque **Renovar expedição** e escolha **15 minutos**, **1 hora** ou **4 horas**. Antes de ativar, selecione no jogo o território, grau e estratégia desejados para suas jornadas. A automação usa esse destino; não escolhe outro território nem muda sua estratégia. Clique em **Iniciar** para aplicar as escolhas junto com a caçada.
 
 Se já houver uma jornada ativa, ela continua com sua duração original. Quando terminar, a próxima usa a duração configurada. Se houver uma jornada pausada, tenta retomá-la, preservando sua duração. Sem jornada ativa ou pausada, abre Expedição, confirma a duração e clica uma única vez em Explorar. Aguarda o jogo confirmar a partida, retorna para Caçada e confere as condições para o próximo clique em Só resultado.
 

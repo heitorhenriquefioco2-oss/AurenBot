@@ -9,7 +9,7 @@ const root=path.join(__dirname,'..');
   const p=await browser.newPage({viewport:{width:1280,height:1050}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
   await p.route('https://fadiga.test/**',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><main><h1>Caçada</h1><button aria-pressed="true" id="mode">Só Resultado</button><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="60"></progress></div><button id="info" class="item-detail-trigger" aria-label="Detalhes do Vigor" aria-controls="details" popovertarget="details">Detalhes do Vigor</button><div id="details" class="item-detail-popover hunt-health-details" role="dialog" popover="auto"><h3>Vigor nas caçadas</h3><button id="closeInfo" class="item-detail-close" aria-label="Fechar detalhes do Vigor">Fechar</button><dl><dt>Vigor necessário</dt><dd>29%</dd><dt>Custo em Vigor</dt><dd>29%</dd></dl><div id="fatigue" class="hunt-fatigue"></div><p>Cada vitória soma 1 ponto de fadiga.</p><p id="wins">380 caçadas hoje.</p></div><section class="hunt-supplies"><button id="minor" class="hunt-potion-use" aria-label="Usar poção de vigor">+40%</button><button id="major" class="hunt-potion-use" aria-label="Usar poção de vigor maior">+100%</button></section><button id="attack">Caçar</button></main>`}));
   await p.addInitScript(options=>{
-   window.game={hp:options.hp??60,f:options.f??40,major:options.major??1000,minor:options.minor??1000,counts:{attack:0,major:0,minor:0,close:0},maxF:options.f??40,flags:{...options.flags}};
+   window.game={hp:options.hp??60,f:options.f??40,major:options.major??1000,minor:options.minor??1000,counts:{attack:0,major:0,minor:0,close:0},fluxo:[],maxF:options.f??40,flags:{...options.flags}};
    const prefs={criatura:'Eco errante',modo:'pocao',atacar:'80',limite:'30',limiteAlivio:'100',economizar:false,margem:'5',continuarOculta:true,controlarFadiga:true,limiteFadiga:'100',...options.prefs};
    window.chrome={storage:{local:{get:async key=>key==='aurenNotificacoesV1'?{aurenNotificacoesV1:{ativadas:false}}:{aurenPreferenciasV33:JSON.parse(localStorage.getItem('prefs')||'null')||prefs},set:async value=>{if(value.aurenPreferenciasV33)localStorage.setItem('prefs',JSON.stringify(value.aurenPreferenciasV33));}}},runtime:{id:'test',onMessage:{addListener(){}}}};
    window.render=()=>{
@@ -24,14 +24,14 @@ const root=path.join(__dirname,'..');
     }
     card.innerHTML=`<div role="img" aria-label="Fadiga: ${g.f>=300?'Exausto':g.f>=100?'Cansado':'Descansado'}"><div class="hunt-fatigue-heading"><strong>Fadiga</strong><span>${g.f>=100?'Cansado':'Descansado'}</span></div><div class="hunt-fatigue-track" style="--hunt-fatigue-current:${g.f===0?0:Math.max(.01,g.f/Math.max(200,g.f+480)*100)}%"></div></div>${g.f>0?`<div class="hunt-fatigue-preview"><span class="hunt-fatigue-relief">−${fmt(g.f-after)} com a poção maior</span><strong><span aria-hidden="true">${fmt(g.f)} → ${fmt(after)}</span><span class="realm-sr-only">Fadiga de ${fmt(g.f)} para ${fmt(after)}</span></strong></div>`:''}<small class="hunt-fatigue-cost">Custo deste alvo segue em 29 de Vigor</small>`;
    };
-   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();if(game.flags.directResult)document.getElementById('mode').disabled=false;};document.body.append(r);};
+   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;game.fluxo.push('close');r.remove();if(game.flags.directResult)document.getElementById('mode').disabled=false;};document.body.append(r);};
    document.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('click',e=>{
     const id=e.target.closest('button')?.id,g=game;
     if(id==='mode'&&!g.flags.directResult){g.modeClicks=(g.modeClicks||0)+1;document.getElementById('mode').setAttribute('aria-pressed','true');}
     if(id==='closeInfo')document.getElementById('details').hidePopover();
-    if(id==='minor'){g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
-    if(id==='major'){(g.usosMaior??=[]).push({hp:g.hp,f:g.f});g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
-    if(id==='attack'||(id==='mode'&&g.flags.directResult)){g.counts.attack++;if(g.flags.directResult)document.getElementById('mode').disabled=true;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
+    if(id==='minor'){g.fluxo.push('minor');g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
+    if(id==='major'){g.fluxo.push('major');(g.usosMaior??=[]).push({hp:g.hp,f:g.f});g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
+    if(id==='attack'||(id==='mode'&&g.flags.directResult)){g.fluxo.push('attack');g.counts.attack++;if(g.flags.directResult)document.getElementById('mode').disabled=true;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
    });});
   },options);
   await p.goto('https://fadiga.test/');await p.clock.install();
@@ -42,6 +42,13 @@ const root=path.join(__dirname,'..');
   });
   const load=async()=>{await p.addScriptTag({path:path.join(root,'avisos.js')});await p.addScriptTag({path:path.join(root,'content.js')});await p.waitForFunction(()=>window.aurenCacada);};await load();
   const t={p,load,start:()=>p.evaluate(()=>aurenCacada.iniciar()),tick:n=>p.clock.runFor(n),diag:()=>p.evaluate(()=>aurenCacada.diagnostico()),counts:()=>p.evaluate(()=>game.counts),set:fields=>p.evaluate(fields=>{Object.assign(game,fields);render();},fields),open:()=>p.locator('#info').click(),status:()=>p.locator('#status').textContent()};
+  t.until=async (predicate,prazo=10000)=>{
+   for(let ms=0;ms<=prazo;ms+=100){
+    if(await predicate())return;
+    await t.tick(100);
+   }
+   assert.fail('Condição não alcançada em '+prazo+' ms');
+  };
   try{await run(t);assert.deepEqual(errors,[]);count++;console.log('PASS:',name);}finally{await p.close();}
  }
  try{
@@ -56,11 +63,12 @@ const root=path.join(__dirname,'..');
  await test('maior esgotada não é substituída pela comum para baixar fadiga',async t=>{await t.start();await t.tick(15000);assert.equal((await t.counts()).major,0);assert.equal((await t.counts()).minor,0);assert.equal((await t.counts()).attack,0);assert.match(await t.status(),/não está disponível/);},{f:99,major:0,prefs:{substituirMaior:true}});
  await test('sem poção comum não gasta maior só para recuperar vigor',async t=>{await t.start();await t.tick(8800);assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});},{f:40,hp:20,minor:0});
  for(const minor of [0,3])await test('uma luta libera a maior com vigor cheio e estoque de comuns '+minor,async t=>{
-  await t.start();await t.tick(2200);
-  assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
-  await t.tick(6600);
-  assert.deepEqual(await t.counts(),{attack:1,major:1,minor:0,close:1});
-  assert.equal(await t.p.evaluate(()=>game.f),85);
+  await t.start();await t.until(async()=>(await t.counts()).major===1);
+  const g=await t.p.evaluate(()=>game);
+  assert.equal(g.counts.major,1);assert.equal(g.counts.minor,0);
+  assert.deepEqual(g.fluxo,['attack','close','major']);
+  assert.deepEqual(g.usosMaior,[{hp:71,f:100}]);
+  assert.equal(g.f,85);
  },{f:99,hp:100,minor,major:1,flags:{autoResult:true}});
  for(const fields of [{f:100,major:1},{f:110,major:1},{f:99,major:0}])await test('gasta vigor cheio mesmo sem margem ou sem poção maior '+JSON.stringify(fields),async t=>{
   await t.start();await t.tick(8800);
@@ -95,9 +103,10 @@ const root=path.join(__dirname,'..');
   assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
  },{f:100,hp:71,prefs:aproveitar});
  await test('usa maior com vigor baixo após três caçadas e mantém margem configurada',async t=>{
-  await t.start();await t.tick(26000);
+  await t.start();await t.until(async()=>(await t.counts()).major===1);
   const g=await t.p.evaluate(()=>game);
   assert.deepEqual(g.usosMaior,[{hp:13,f:102}]);
+  assert.deepEqual(g.fluxo,['attack','close','attack','close','attack','close','major']);
   assert.equal(g.counts.minor,0);
   assert.ok(g.maxF<=105);
  },{f:99,hp:100,flags:{autoResult:true},prefs:aproveitar});
@@ -174,6 +183,67 @@ const root=path.join(__dirname,'..');
   const counts=await t.counts();
   assert.ok(counts.attack>=2);assert.ok(counts.close>=2);
  },{hp:100,f:40,flags:{directResult:true,autoResult:true}});
+ await test('reage ao resultado e recupera vigor em até meio segundo',async t=>{
+  await t.start();await t.tick(2200);
+  await t.p.evaluate(()=>{game.hp=71;render();result();});
+  await t.tick(500);
+  assert.equal((await t.counts()).close,1);
+  assert.equal((await t.counts()).minor,1);
+  await t.p.evaluate(()=>aurenCacada.pausar());
+  const antes=await t.counts();await t.tick(4400);
+  assert.deepEqual(await t.counts(),antes);
+ },{hp:100,f:40,flags:{directResult:true}});
+ for(const troca of ['atributo','remontagem'])await test('sem comum evita ciclo de detalhes por '+troca+' e reage ao reabastecer',async t=>{
+  await t.p.evaluate(troca=>{
+   const detalhes=document.getElementById('details');
+   document.getElementById('info').removeAttribute('popovertarget');
+   detalhes.removeAttribute('popover');detalhes.hidden=true;
+   game.consultas={abrir:0,fechar:0};
+   document.addEventListener('click',e=>{
+    const id=e.target.closest('button')?.id;
+    if(id!=='info'&&id!=='closeInfo')return;
+    e.stopImmediatePropagation();
+    game.consultas[id==='info'?'abrir':'fechar']++;
+    const atual=document.getElementById('details');
+    if(troca==='remontagem'){
+     const novo=atual.cloneNode(true);novo.hidden=id==='closeInfo';atual.replaceWith(novo);
+    }else atual.hidden=id==='closeInfo';
+   },true);
+  },troca);
+  await t.start();await t.tick(8800);
+  assert.deepEqual(await t.counts(),{attack:0,major:0,minor:0,close:0});
+  const consultas=await t.p.evaluate(()=>game.consultas);
+  assert.ok(consultas.abrir>0&&consultas.abrir<=4,'Consultas sem alteração no jogo: '+consultas.abrir);
+  assert.equal(consultas.fechar,consultas.abrir);
+  assert.equal(await t.p.locator('#details').isVisible(),false);
+  await t.set({minor:1});await t.tick(500);
+  assert.deepEqual(await t.counts(),{attack:0,major:0,minor:1,close:0});
+  const aposReposicao=await t.p.evaluate(()=>game.consultas.abrir);
+  await t.tick(8800);
+  const depois=await t.p.evaluate(()=>game.consultas);
+  assert.ok(depois.abrir-aposReposicao<=4,'Consultas repetidas após reposição: '+(depois.abrir-aposReposicao));
+  assert.equal(depois.fechar,depois.abrir);
+  assert.equal(await t.p.locator('#details').isVisible(),false);
+ },{hp:20,f:40,minor:0});
+ await test('grupo moderno oculto preserva seleção e ataque no controle legado visível',async t=>{
+  await t.p.evaluate(()=>document.body.insertAdjacentHTML('beforeend','<div class="monster-choices" hidden><button>Outro monstro</button></div>'));
+  assert.equal((await t.diag()).criatura?.selecionada,true);
+  await t.start();await t.tick(2200);
+  assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
+ },{hp:100,f:40,flags:{directResult:true}});
+ await test('interface moderna evita varrer controles alheios e repetir leituras de layout',async t=>{
+  const leituras=await t.p.evaluate(()=>{
+   const monstro=document.getElementById('monster'),grupo=document.createElement('div');
+   grupo.className='monster-choices';monstro.replaceWith(grupo);grupo.append(monstro);
+   const ruido=document.createElement('section');
+   ruido.innerHTML=Array.from({length:1000},(_,i)=>'<article><div><span>Item '+i+'</span></div><button>Outro '+i+'</button></article>').join('');
+   document.body.append(ruido);
+   const original=window.getComputedStyle;let consultas=0;
+   window.getComputedStyle=(...args)=>{consultas++;return original(...args);};
+   try{aurenCacada.diagnostico();return consultas;}finally{window.getComputedStyle=original;}
+  });
+  assert.ok(leituras<80,'Leituras de layout: '+leituras);
+ },{flags:{directResult:true}});
  console.log('TOTAL',count);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -215,6 +215,34 @@ const root = path.join(__dirname, '..');
       await t.start();await t.tick(6600);
       assert.deepEqual((await t.game()).clicks,['fire']);
     },{guild});
+    await test('reage à seleção e confirma a investida em menos de um ciclo periódico',async t=>{
+      await t.start();await t.tick(500);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+      assert.equal(await t.page.evaluate(()=>aurenBoss.temPendente()),false);
+    });
+    await test('mensagem de espera estável não reescreve o painel',async t=>{
+      await t.start();await t.tick(3000);
+      await t.page.evaluate(()=>{
+        const status=document.getElementById('auren-cacada-v3').shadowRoot.getElementById('statusBoss');
+        window.statusWrites=0;
+        new MutationObserver(records=>{window.statusWrites+=records.length;}).observe(status,{childList:true,subtree:true,characterData:true});
+      });
+      await t.tick(10000);
+      assert.equal(await t.page.evaluate(()=>window.statusWrites),0);
+      assert.deepEqual((await t.game()).clicks,['fire']);
+    });
+    await test('alterar o painel não dispara leitura extra do jogo',async t=>{
+      await t.start();
+      await t.page.evaluate(()=>{
+        const original=document.querySelectorAll.bind(document);
+        window.gameQueries=0;
+        document.querySelectorAll=selector=>{window.gameQueries++;return original(selector);};
+        document.getElementById('auren-cacada-v3').classList.add('painel-em-teste');
+      });
+      await t.tick(500);
+      assert.equal(await t.page.evaluate(()=>window.gameQueries),0);
+      assert.deepEqual((await t.game()).clicks,[]);
+    },{occupied:true});
     console.log('TOTAL',count);
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

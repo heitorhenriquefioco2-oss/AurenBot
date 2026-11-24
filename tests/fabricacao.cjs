@@ -9,7 +9,7 @@ const root=path.join(__dirname,'..');
   const p=await browser.newPage({viewport:{width:1280,height:1050}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
   await p.route('https://fadiga.test/**',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><main><h1>Caçada</h1><button id="monster" aria-pressed="true">Eco errante</button><div class="hunt-vitality"><progress aria-label="Vigor de caçada" max="100" value="60"></progress></div><button id="info" class="item-detail-trigger" aria-label="Detalhes do Vigor" aria-controls="details" popovertarget="details">Detalhes do Vigor</button><div id="details" class="item-detail-popover hunt-health-details" role="dialog" popover="auto"><h3>Vigor nas caçadas</h3><button id="closeInfo" class="item-detail-close" aria-label="Fechar detalhes do Vigor">Fechar</button><dl><dt>Vigor necessário</dt><dd>29%</dd><dt>Custo em Vigor</dt><dd>29%</dd></dl><div id="fatigue" class="hunt-fatigue"></div><p>Cada vitória soma 1 ponto de fadiga.</p><p id="wins">380 caçadas hoje.</p></div><section class="hunt-supplies"><button id="minor" class="hunt-potion-use" aria-label="Usar poção de vigor">+40%</button><button id="major" class="hunt-potion-use" aria-label="Usar poção de vigor maior">+100%</button></section><button id="attack" class="hunt-result"><span>Só resultado</span></button></main>`}));
   await p.addInitScript(options=>{
-   window.game={hp:options.hp??60,f:options.f??40,major:options.major??1000,minor:options.minor??1000,counts:{attack:0,major:0,minor:0,close:0},maxF:options.f??40,flags:{...options.flags}};
+   window.game={hp:options.hp??60,f:options.f??40,major:options.major??1000,minor:options.minor??1000,counts:{attack:0,major:0,minor:0,close:0},fluxo:[],maxF:options.f??40,flags:{...options.flags}};
    const prefs={criatura:'Eco errante',modo:'pocao',atacar:'80',limite:'30',limiteAlivio:'100',economizar:false,margem:'5',continuarOculta:true,controlarFadiga:true,limiteFadiga:'100',fabricarMaior:true,...options.prefs};
    window.chrome={storage:{local:{get:async key=>key==='aurenNotificacoesV1'?{aurenNotificacoesV1:{ativadas:false}}:{aurenPreferenciasV33:JSON.parse(localStorage.getItem('prefs')||'null')||prefs},set:async value=>{if(value.aurenPreferenciasV33)localStorage.setItem('prefs',JSON.stringify(value.aurenPreferenciasV33));}}},runtime:{id:'test',onMessage:{addListener(){}}}};
    window.render=()=>{
@@ -19,13 +19,13 @@ const root=path.join(__dirname,'..');
     document.getElementById('major').title=g.hp>=100?'Seu Vigor já está completo':g.major===0?'Sem poções na mochila':'Poção de vigor maior';
     card.innerHTML=`<div role="img" aria-label="Fadiga: ${g.f>=300?'Exausto':g.f>=100?'Cansado':'Descansado'}"><div class="hunt-fatigue-heading"><strong>Fadiga</strong><span>${g.f>=100?'Cansado':'Descansado'}</span></div><div class="hunt-fatigue-track" style="--hunt-fatigue-current:${g.f===0?0:Math.max(.01,g.f/Math.max(200,g.f+480)*100)}%"></div></div>${g.f>0?`<div class="hunt-fatigue-preview"><span class="hunt-fatigue-relief">−${fmt(g.f-after)} com a poção maior</span><strong><span aria-hidden="true">${fmt(g.f)} → ${fmt(after)}</span><span class="realm-sr-only">Fadiga de ${fmt(g.f)} para ${fmt(after)}</span></strong></div>`:''}<small class="hunt-fatigue-cost">Custo deste alvo segue em 29 de Vigor</small>`;
    };
-   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;r.remove();};document.body.append(r);};
+   window.result=()=>{const r=document.createElement('div');r.id='result';r.setAttribute('role','dialog');r.innerHTML='<h2>Caçada concluída</h2><p>Vitória</p><button id="continue">Continuar</button>';r.querySelector('button').onclick=()=>{game.counts.close++;game.fluxo.push('close');r.remove();};document.body.append(r);};
    document.addEventListener('DOMContentLoaded',()=>{render();document.addEventListener('click',e=>{
     const id=e.target.closest('button')?.id,g=game;
     if(id==='closeInfo')document.getElementById('details').hidePopover();
-    if(id==='minor'){g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
-    if(id==='major'){g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
-    if(id==='attack'){g.counts.attack++;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
+    if(id==='minor'){g.fluxo.push('minor');g.counts.minor++;g.minor--;if(g.flags.apply!==false)g.hp=Math.min(100,g.hp+40);render();}
+    if(id==='major'){g.fluxo.push('major');g.counts.major++;g.major--;if(g.flags.apply!==false){g.hp=100;if(!g.flags.onlyVigor)g.f=Math.max(0,g.f-15);}render();}
+    if(id==='attack'){g.fluxo.push('attack');g.counts.attack++;if(g.flags.autoResult)setTimeout(()=>{g.hp=Math.max(0,g.hp-29);g.f++;g.maxF=Math.max(g.maxF,g.f);render();result();},1000);}
    });});
   },options);
   await p.goto('https://fadiga.test/');await p.clock.install();
@@ -70,6 +70,13 @@ const root=path.join(__dirname,'..');
   }, options);
   const load=async()=>{await p.addScriptTag({path:path.join(root,'avisos.js')});await p.addScriptTag({path:path.join(root,'content.js')});await p.waitForFunction(()=>window.aurenCacada);};await load();
   const t={p,load,start:()=>p.evaluate(()=>aurenCacada.iniciar()),tick:n=>p.clock.runFor(n),diag:()=>p.evaluate(()=>aurenCacada.diagnostico()),counts:()=>p.evaluate(()=>game.counts),set:fields=>p.evaluate(fields=>{Object.assign(game,fields);render();},fields),open:()=>p.locator('#info').click(),status:()=>p.locator('#status').textContent()};
+  t.until=async (predicate,prazo=10000)=>{
+   for(let ms=0;ms<=prazo;ms+=100){
+    if(await predicate())return;
+    await t.tick(100);
+   }
+   assert.fail('Condição não alcançada em '+prazo+' ms');
+  };
   try{await run(t);assert.deepEqual(errors,[]);count++;console.log('PASS:',name);}finally{await p.close();}
  }
  try{
@@ -81,8 +88,15 @@ const root=path.join(__dirname,'..');
  await test('receita diferente não autoriza gastar nem ignorar o limite',async t=>{await t.start();await t.tick(18000);const g=await t.p.evaluate(()=>game);assert.equal(g.fill,0);assert.equal(g.craft,0);assert.equal(g.counts.attack,0);assert.match(await t.status(),/receita mudou/);},{f:99,major:0,flags:{wrongCost:true}});
  await test('sem resposta preserva fabricação pendente e não repete gasto',async t=>{await t.start();await t.tick(70000);assert.equal(await t.p.evaluate(()=>game.craft),1);assert.equal((await t.diag()).pendente,'fabricacao');assert.equal((await t.counts()).attack,0);await t.start();await t.tick(10000);assert.equal(await t.p.evaluate(()=>game.craft),1);},{f:99,major:0,flags:{noConfirm:true}});
  await test('confirma pelo estoque mesmo se o aviso de sucesso não aparecer',async t=>{await t.start();await t.tick(14000);assert.equal(await t.p.evaluate(()=>game.craft),1);assert.equal(await t.p.locator('#hunt').isVisible(),true);assert.equal((await t.counts()).major,1);},{f:99,major:0,flags:{noDialog:true}});
- await test('confere recursos novamente e usa a maior fabricada para baixar a fadiga',async t=>{await t.start();await t.tick(12000);await t.set({gold:5700,olhos:3,hp:60});await t.tick(62000);const g=await t.p.evaluate(()=>game);assert.equal(g.nav,2);assert.equal(g.craft,1);assert.equal(g.counts.major,1);assert.ok(g.f<g.maxF);},{f:99,major:0,gold:0,flags:{autoResult:true}});
- await test('estoque recebido cancela a liberação do limite imediatamente',async t=>{await t.start();await t.tick(2200);const before=(await t.counts()).attack;await t.set({major:1,hp:60});await t.tick(6600);assert.equal((await t.counts()).attack,before);assert.equal((await t.counts()).major,1);},{f:200,major:0,gold:0});
+ await test('confere recursos novamente e usa a maior fabricada para baixar a fadiga',async t=>{await t.start();await t.tick(12000);await t.set({gold:5700,olhos:3,hp:60});for(let ms=0;ms<65000&&(await t.counts()).major===0;ms+=500)await t.tick(500);const g=await t.p.evaluate(()=>game);assert.equal(g.nav,2);assert.equal(g.craft,1);assert.equal(g.counts.major,1);assert.ok(g.f<g.maxF);},{f:99,major:0,gold:0,flags:{autoResult:true}});
+ await test('estoque recebido cancela a liberação do limite imediatamente',async t=>{
+  await t.start();await t.until(async()=>(await t.diag()).fabricacao.semRecursos);
+  const before=(await t.counts()).attack;
+  await t.set({major:1,hp:60});
+  await t.until(async()=>(await t.counts()).major===1);
+  assert.equal((await t.counts()).attack,before);
+  assert.equal((await t.counts()).major,1);
+ },{f:200,major:0,gold:0});
  await test('sem ouro não usa partes alternativas que estiverem selecionadas',async t=>{await t.start();await t.tick(12000);const g=await t.p.evaluate(()=>game);assert.equal(g.craft,0);assert.equal(g.fill,0);assert.equal(g.counts.attack,1);},{f:99,major:0,gold:0,flags:{otherPart:true}});
  await test('sem as duas partes não gasta outras partes e libera o limite',async t=>{await t.start();await t.tick(14000);const g=await t.p.evaluate(()=>game);assert.equal(g.craft,0);assert.equal(g.fill,0);assert.equal(g.counts.attack,1);},{f:99,major:0,olhos:0,flags:{otherPart:true}});
  await test('preferência fica salva e desativa junto com controle de fadiga',async t=>{assert.equal(await t.p.locator('#fabricarMaior').isChecked(),true);await t.p.locator('#fabricarMaior').uncheck();assert.equal(await t.p.evaluate(()=>JSON.parse(localStorage.getItem('prefs')).fabricarMaior),false);await t.p.locator('#controlarFadiga').uncheck();assert.equal(await t.p.locator('#fabricarMaior').isDisabled(),true);});
@@ -163,7 +177,9 @@ const root=path.join(__dirname,'..');
  },{prefs:{...craftPersonalizado,...fields}});
  await test('fabricação desligada ignora campos incompletos da receita',async t=>{
   await t.start();await t.tick(4400);
-  assert.equal((await t.counts()).minor,1);
+  assert.equal((await t.counts()).minor,2);
+  assert.equal((await t.counts()).major,0);
+  assert.equal((await t.counts()).attack,1);
   assert.equal(await t.p.evaluate(()=>game.nav),0);
  },{hp:20,f:40,prefs:{fabricarMaior:false,craftIngredientes:'',craftQuantidade:'',craftOuro:'bad'}});
  console.log('TOTAL',count);

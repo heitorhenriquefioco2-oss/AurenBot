@@ -10,7 +10,7 @@ function valoresFormulario() {
 function mostrarPerfis(cfg) {
   for (const id of ids) {
     const perfil = cfg.dispositivos[id];
-    ui(id+'Status').textContent = perfil.ativado ? 'Selecionado para receber avisos.' : 'Não vai receber avisos. O endereço e o código continuam salvos.';
+    ui(id+'Status').textContent = perfil.ativado ? 'Avisos ativados.' : 'Desativado. Dados salvos.';
   }
 }
 ui('config').onsubmit = async event => {
@@ -20,7 +20,7 @@ ui('config').onsubmit = async event => {
   try {
     const cfg = valoresFormulario(), digitado = structuredClone(cfg);
     const ativos = ids.filter(id=>cfg.dispositivos[id].ativado);
-    if (cfg.ativadas && !ativos.length) throw Error('Marque Windows, Android ou os dois para receber os avisos.');
+    if (cfg.ativadas && !ativos.length) throw Error('Marque Windows, Android ou os dois.');
     const origens = [];
     if (cfg.ativadas) for (const id of ativos) {
       try {
@@ -30,29 +30,29 @@ ui('config').onsubmit = async event => {
       } catch(error) { throw Error(`${nomes[id]}: ${error.message}`); }
     }
     // Solicita as permissões em um único clique, antes de qualquer gravação.
-    if (origens.length && !(await chrome.permissions.request({origins:[...new Set(origens)]}))) throw Error('O Chrome não permitiu a conexão. Tente salvar de novo e aceite a permissão. Nada foi alterado.');
+    if (origens.length && !(await chrome.permissions.request({origins:[...new Set(origens)]}))) throw Error('Conexão recusada. Salve novamente e autorize o Chrome. Nada foi alterado.');
     await chrome.storage.local.set({aurenNotificacoesV1:cfg});
     configSalva = cfg;
     for (const id of ids) if (ui(id+'Endereco').value.trim() === digitado.dispositivos[id].endereco) ui(id+'Endereco').value = cfg.dispositivos[id].endereco;
     mostrarPerfis(cfg);
-    ui('status').textContent = cfg.ativadas ? 'Tudo salvo. Envie um teste para conferir se o aviso chega.' : 'Avisos desligados. Os endereços e os códigos continuam salvos.';
+    ui('status').textContent = cfg.ativadas ? 'Tudo salvo. Teste os avisos.' : 'Avisos desligados. Dados salvos.';
   } catch(error) { ui('status').textContent = error.message; }
   finally { salvando = false; ui('salvar').disabled = false; }
 };
 async function testar(destino) {
   if (salvando || !configSalva || JSON.stringify(valoresFormulario()) !== JSON.stringify(configSalva)) {
-    ui('status').textContent = 'Clique em Salvar configurações antes de testar.';
+    ui('status').textContent = 'Clique em Salvar configurações antes do teste.';
     return;
   }
-  ui('status').textContent = 'Enviando o aviso de teste…';
+  ui('status').textContent = 'Enviando teste…';
   try {
     const result = await chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'teste', ...(destino ? {destino} : {})});
     if (result?.resultados) {
-      for (const r of result.resultados) if (ids.includes(r.destino)) ui(r.destino+'Status').textContent = r.ok ? 'O app recebeu o teste. Confira se o aviso apareceu.' : `O teste não chegou: ${r.erro}`;
+      for (const r of result.resultados) if (ids.includes(r.destino)) ui(r.destino+'Status').textContent = r.ok ? 'O app recebeu o teste. Confira o aparelho.' : `O teste não chegou: ${r.erro}`;
       ui('status').textContent = result.resultados.map(r=>`${nomes[r.destino] || 'App'}: ${r.ok ? 'teste recebido' : r.erro}`).join('\n');
     } else {
-      if (!result?.ok) throw Error(result?.erro || 'Não consegui enviar. Confira a conexão e tente de novo.');
-      ui('status').textContent = 'O app recebeu o aviso. Confira se ele apareceu.';
+      if (!result?.ok) throw Error(result?.erro || 'Falha no envio. Confira a conexão.');
+      ui('status').textContent = 'Aviso recebido. Confira o aparelho.';
     }
   } catch(error) { ui('status').textContent = error.message; }
 }
@@ -68,5 +68,5 @@ chrome.storage.local.get('aurenNotificacoesV1').then(saved=>{
     ui(id+'Chave').value = cfg.dispositivos[id].chave;
   }
   configSalva = valoresFormulario(); mostrarPerfis(cfg); ui('campos').disabled = false;
-  ui('status').textContent = cfg.ativadas ? 'Seus dados estão aqui. Você pode receber no PC, no celular ou nos dois.' : 'Preencha os dados abaixo, ligue os avisos e salve para começar.';
-},()=>{ui('status').textContent='Não consegui carregar seus dados. Feche esta página e abra de novo antes de editar.';});
+  ui('status').textContent = cfg.ativadas ? 'Avisos prontos. Escolha os aparelhos abaixo.' : 'Preencha os dados, ative os avisos e salve.';
+},()=>{ui('status').textContent='Falha ao carregar dados. Reabra esta página.';});

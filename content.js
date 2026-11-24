@@ -10,7 +10,7 @@
 
   const normal = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const texto = el => normal(el && [el.textContent, el.getAttribute('aria-label'), el.getAttribute('title')].filter(Boolean).join(' '));
-  const visivel = el => !!el && el.isConnected && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none';
+  const visivel = el => !!el?.isConnected && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
   const habilitado = el => visivel(el) && !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.getAttribute('aria-busy') !== 'true';
   const todos = (sel, scope = document) => [...scope.querySelectorAll(sel)].filter(visivel);
   const unico = xs => xs.length === 1 ? xs[0] : null;
@@ -20,22 +20,23 @@
   const esperarInterface = () => window.aurenSegundoPlano?.esperar(200) ?? new Promise(resolve=>setTimeout(resolve,200));
   function avisosBloqueando(reportar = status) {
     const bloqueado = window.aurenAvisos?.verificar();
-    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.tipoVerificacao === 'sombra' ? 'O jogo pediu uma resposta. Resolva o desafio de sombra para continuar.' : window.aurenAvisos.seloPronto ? 'A verificação está pronta. Clique em Apresentar o selo no jogo.' : 'Responda à verificação no jogo e clique em Apresentar o selo.');
+    if (window.aurenAvisos?.verificacaoHumana) reportar(window.aurenAvisos.tipoVerificacao === 'sombra' ? 'Resolva o desafio de sombra no jogo.' : window.aurenAvisos.seloPronto ? 'Verificação pronta. Clique em Apresentar o selo.' : 'Resolva a verificação e clique em Apresentar o selo.');
     return !!bloqueado || !!window.aurenAvisos?.verificacaoHumana;
   }
   function percentual(valor, campo) {
     const texto = String(valor ?? '').trim().replace(/\s*%\s*$/, '').trim();
     if (!/^\d+(?:[.,]\d+)?$/.test(texto)) {
-      throw Error(`${campo}: digite um número de 0 a 100. Exemplo: 80 ou 80,5.`);
+      throw Error(`${campo}: use um número de 0 a 100, como 80 ou 80,5.`);
     }
     const n = Number(texto.replace(',', '.'));
-    if (!Number.isFinite(n) || n < 0 || n > 100) throw Error(`${campo}: digite um número de 0 a 100.`);
+    if (!Number.isFinite(n) || n < 0 || n > 100) throw Error(`${campo}: use de 0 a 100.`);
     return n;
   }
+  const controlesCriatura = 'button, [role="button"], .monster-card, .hunt-monster-card';
   const seletores = {
     // Mantém a chave legada da API; a leitura agora é do Vigor de caçada.
     vida: '.hunt-vitality progress, progress[aria-label="Vigor de caçada" i], .hero-header-status[aria-label*="Vigor" i] progress, .hunt-health-value > strong, .sanctum-vitals',
-    criaturas: 'button, [role="button"], .monster-card, .hunt-monster-card',
+    criaturas: controlesCriatura,
     // Opcional: preencher pelo console se o jogo usar classes diferentes.
     selecionada: '', atacar: '', alivio: '', restauradora: '', resultado: ''
   };
@@ -79,18 +80,12 @@
     const paineis = todos('.hunt-fatigue');
     if (paineis.length !== 1) return null;
     const painel = paineis[0];
-    const ponto = valor => {
-      const s = String(valor).trim();
-      if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(s)) return null;
-      const n = Number(s.replace(/\./g, ''));
-      return Number.isSafeInteger(n) && n >= 0 ? n : null;
-    };
     const leituras = [];
     for (const el of painel.querySelectorAll('.hunt-fatigue-preview .realm-sr-only, .hunt-fatigue-preview [aria-hidden="true"]')) {
       const t = normal(el.textContent);
       const m = t.match(/^fadiga de ([\d.]+) para ([\d.]+)$/) || t.match(/^([\d.]+)\s*(?:→|->)\s*([\d.]+)$/);
       if (!m) continue;
-      const atual = ponto(m[1]), depoisMaior = ponto(m[2]);
+      const atual = inteiroOficina(m[1]), depoisMaior = inteiroOficina(m[2]);
       if (atual === null || depoisMaior === null || depoisMaior >= atual) return null;
       leituras.push({atual, depoisMaior});
     }
@@ -105,10 +100,11 @@
     return null;
   }
   function consultarFadiga() {
-    if (todos('dialog[open], [role="dialog"], [aria-modal="true"], .item-detail-popover').some(el=>!el.matches('.hunt-health-details') && !el.closest('.hunt-health-details'))) return null;
+    const dialogos = todos('dialog[open], [role="dialog"], [aria-modal="true"], .item-detail-popover');
+    if (dialogos.some(el=>!el.matches('.hunt-health-details') && !el.closest('.hunt-health-details'))) return null;
     const leitura = lerFadiga();
     if (leitura) return leitura;
-    if (todos('dialog[open], [role="dialog"], [aria-modal="true"], .item-detail-popover').length) return null;
+    if (dialogos.length) return null;
     const botao = unico(todos('button.item-detail-trigger').filter(el=>/^(detalhes do vigor|vigor details)$/.test(normal(el.getAttribute('aria-label') || el.getAttribute('title')))));
     const painel = botao && document.getElementById(botao.getAttribute('aria-controls'));
     if (!painel?.matches('.hunt-health-details') || !telaCacada()) return null;
@@ -132,7 +128,10 @@
     return [...el.querySelectorAll('h2,h3,h4,strong,span,p,[class*="name"],[class*="title"]')].some(child => normal(child.textContent) === nome);
   }
   function localizarCriatura(nome) {
-    const xs = todos(seletores.criaturas).filter(el => nomeExato(el, normal(nome)));
+    const procurado = normal(nome);
+    const candidatos = controles => [...controles].filter(el => nomeExato(el, procurado) && visivel(el));
+    const modernos = seletores.criaturas === controlesCriatura ? candidatos(document.querySelectorAll('.monster-choices button')) : [];
+    const xs = modernos.length ? modernos : candidatos(document.querySelectorAll(seletores.criaturas));
     // Descarta contêineres maiores que contenham outro candidato mais específico.
     return unico(xs.filter(el => !xs.some(other => other !== el && el.contains(other))));
   }
@@ -151,20 +150,25 @@
   }
   function botaoAcaoResultado() {
     return unico(todos('button.hunt-result, .hunt-actions button').filter(el=>
-      /^so(?: o)? resultado$/.test(rotuloControle(el))));
+      /^so(?: o)? resultado$/.test(normal(el.textContent)) || /^so(?: o)? resultado$/.test(rotuloControle(el))));
   }
   function rotuloControle(el) {
+    const ignorados = 'svg, img, [aria-hidden="true"], kbd, script, style';
+    if (!el.querySelector(ignorados)) return normal(el.textContent);
     const copia = el.cloneNode(true);
-    copia.querySelectorAll('svg, img, [aria-hidden="true"], kbd, script, style').forEach(no => no.remove());
+    copia.querySelectorAll(ignorados).forEach(no => no.remove());
     return normal(copia.textContent);
   }
   function botaoSoResultado() {
+    const direto = botaoAcaoResultado();
+    if (direto) return direto;
     const alvo = v => /^so(?: o)? resultado$/.test(normal(v));
     const acionaveis = 'button,a,label,[role="button"],[role="tab"],[role="radio"],[tabindex]';
     const candidatos = new Set();
-    for (const el of todos(acionaveis + ',span,strong,div')) {
+    for (const el of document.querySelectorAll(acionaveis + ',span,strong,div')) {
       const direto = alvo(el.getAttribute('aria-label')) || alvo(el.getAttribute('title')) || alvo(el.textContent);
       if (!direto && !(el.matches(acionaveis) && el.textContent.length < 300 && alvo(rotuloControle(el)))) continue;
+      if (!visivel(el)) continue;
       // Também aceita rótulos clicáveis sem role; o clique propaga ao componente.
       const componente = el.closest('[class*="mode"],[class*="option"],[class*="toggle"],[class*="tab"]');
       const controle = el.closest(acionaveis) || (componente && alvo(rotuloControle(componente)) ? componente : el);
@@ -196,12 +200,12 @@
     let clicado = false;
     while (valido()) {
       if (telaCacada()) return true;
-      if (agoraAtivo() - inicio > prazoInterface(prazo)) throw Error('Não consegui abrir a Caçada. Abra essa tela no jogo e tente de novo.');
+      if (agoraAtivo() - inicio > prazoInterface(prazo)) throw Error('Abra a Caçada no jogo e tente novamente.');
       if (!avisosBloqueando(reportar) && !clicado) {
         const botao = menuCacada();
         if (botao && clicar(botao)) {
           clicado = true;
-          reportar('Abrindo a Caçada…');
+          reportar('Abrindo Caçada…');
         }
       }
       await esperarInterface();
@@ -225,11 +229,11 @@
   async function navegarExpedicao(token) {
     const inicio = agoraAtivo();
     let clicou = false;
-    while (preparacao === token && !removido) {
+    while (preparacao === token) {
       if (telaExpedicao()) return true;
-      if (agoraAtivo() - inicio > prazoInterface(8000)) throw Error('Não consegui abrir a Expedição. Abra essa tela no jogo e tente de novo.');
+      if (agoraAtivo() - inicio > prazoInterface(8000)) throw Error('Abra a Expedição no jogo e tente novamente.');
       if (!avisosBloqueando() && !clicou && clicar(menuExpedicao())) {
-        clicou = true; status('Abrindo a Expedição…');
+        clicou = true; status('Abrindo Expedição…');
       }
       await esperarInterface();
     }
@@ -249,17 +253,17 @@
     try {
       if (estadoExpedicao().ativa) {
         expedicaoPendente = null;
-        statusExpedicao('Sua expedição está em andamento. A caçada continua.');
+        statusExpedicao('Expedição em andamento.');
         return true;
       }
       if (expedicaoPendente) {
-        statusExpedicao('Esperando a expedição começar. Se demorar, confira a tela Expedição no jogo.');
+        statusExpedicao('Aguardando a partida. Confira a tela Expedição.');
         return true;
       }
       if (!(await navegarExpedicao(token))) return false;
       const inicio = agoraAtivo();
       let selecionouDuracao = false;
-      while (preparacao === token && !removido) {
+      while (preparacao === token) {
         if (avisosBloqueando()) { await esperarInterface(); continue; }
         const estado = estadoExpedicao();
         if (estado.ativa) {
@@ -267,16 +271,16 @@
           statusExpedicao('Expedição iniciada. Voltando à Caçada.');
           break;
         }
-        if (agoraAtivo() - inicio > 15000) throw Error(expedicaoPendente ? 'A expedição ainda não foi confirmada. Vou continuar caçando sem tentar iniciá-la de novo.' : 'Não consegui iniciar a expedição. Confira o tempo, o território e a estratégia no jogo.');
+        if (agoraAtivo() - inicio > 15000) throw Error(expedicaoPendente ? 'Expedição sem confirmação. A caçada continua.' : 'Confira duração, território e estratégia na Expedição.');
         if (!expedicaoPendente) {
           if (estado.pausada) {
             if (clicar(estado.retomar)) {
               expedicaoPendente = { acao: 'retomar' };
-              statusExpedicao('Esperando o jogo retomar sua expedição…');
+              statusExpedicao('Retomando expedição…');
             }
           } else {
             const duracao = opcaoDuracao(config.duracaoExpedicao);
-            if (!duracao) throw Error('Não consegui escolher esse tempo. Confira a duração na tela Expedição do jogo.');
+            if (!duracao) throw Error('Confira a duração na tela Expedição.');
             if (!selecionada(duracao)) {
               if (!selecionouDuracao && clicar(duracao)) selecionouDuracao = true;
             } else {
@@ -284,7 +288,7 @@
               const iniciarExpedicao = unico(botoes().filter(el => rotuloControle(el) === `explorar por ${duracaoEsperada}`));
               if (clicar(iniciarExpedicao)) {
                 expedicaoPendente = { acao: 'iniciar', minutos: config.duracaoExpedicao };
-                statusExpedicao('Esperando a expedição começar…');
+                statusExpedicao('Aguardando partida…');
               }
             }
           }
@@ -292,8 +296,8 @@
         await esperarInterface();
       }
     } catch (e) { erro = e.message; statusExpedicao(erro); }
-    if (preparacao !== token || removido) return false;
-    if (!(await navegarCacada(() => preparacao === token && !removido))) return false;
+    if (preparacao !== token) return false;
+    if (!(await navegarCacada(() => preparacao === token))) return false;
     if (!(await prepararModalidade(token))) return false;
     if (erro) status(erro);
     return true;
@@ -304,7 +308,7 @@
     try {
       await prepararExpedicao(token);
     } catch (e) {
-      if (preparacao === token) pausar(`Não consegui voltar à Caçada: ${e.message}`, true);
+      if (preparacao === token) pausar(`Volta à Caçada: ${e.message}`, true);
     } finally {
       if (preparacao === token) preparacao = null;
     }
@@ -325,8 +329,8 @@
   async function prepararModalidade(token) {
     const inicio = agoraAtivo();
     let clicado = false;
-    while (preparacao === token && !removido) {
-      if (agoraAtivo() - inicio > prazoInterface(8000)) throw Error('Não encontrei o controle Só Resultado pronto na Caçada. Confira a tela do jogo.');
+    while (preparacao === token) {
+      if (agoraAtivo() - inicio > prazoInterface(8000)) throw Error('Só Resultado indisponível. Confira a Caçada.');
       if (!avisosBloqueando()) {
         // Na interface atual, o clique já inicia a luta e pertence apenas ao ciclo de ataque.
         if (botaoAcaoResultado()) return true;
@@ -334,7 +338,7 @@
         if (botao && modoResultadoConfirmado(botao)) return true;
         if (botao && !clicado && clicar(botao)) {
           clicado = true;
-          status('Marcando Só Resultado para pular a animação da luta…');
+          status('Selecionando Só Resultado…');
         }
       }
       await esperarInterface();
@@ -405,7 +409,7 @@
     if (preparacao || pendente) return;
     const materiais = config.craft;
     const token = {}; preparacao = token; faltaRecursosMaior = null;
-    const valido = () => preparacao === token && !removido;
+    const valido = () => preparacao === token;
     const esperar = async (ler, mensagem, prazo = 8000) => {
       const inicio = agoraAtivo();
       while (valido()) {
@@ -422,35 +426,35 @@
       return valido();
     };
     try {
-      if (!fecharDetalhesFadiga()) throw Error('Feche os detalhes do Vigor antes de fabricar a poção.');
-      status('A poção maior acabou. Conferindo os ingredientes na oficina…');
-      await acionar(()=>unico(todos('nav a,nav button,aside a,aside button,[role="navigation"] a,[role="navigation"] button').filter(el=>nomeExato(el, 'oficina'))), 'Não consegui abrir a Oficina.');
+      if (!fecharDetalhesFadiga()) throw Error('Feche os detalhes do Vigor para fabricar.');
+      status('Sem poção maior. Conferindo a Oficina…');
+      await acionar(()=>unico(todos('nav a,nav button,aside a,aside button,[role="navigation"] a,[role="navigation"] button').filter(el=>nomeExato(el, 'oficina'))), 'Abra a Oficina no jogo.');
       if (!valido()) return;
-      await acionar(()=>unico(todos('.workshop-stations button[data-station="cauldron"]')), 'Não encontrei o Caldeirão.');
+      await acionar(()=>unico(todos('.workshop-stations button[data-station="cauldron"]')), 'Caldeirão não encontrado.');
       if (!valido()) return;
-      await acionar(()=>unico(botoes().filter(el=>rotuloControle(el) === 'pocoes')), 'Não encontrei as Poções no Caldeirão.');
+      await acionar(()=>unico(botoes().filter(el=>rotuloControle(el) === 'pocoes')), 'Poções não encontradas no Caldeirão.');
       if (!valido()) return;
       const receita = () => unico(todos('.workshop-recipe-grid button').filter(el=>/^pocao de vigor maior, [\d.]+ na mochila$/.test(normal(el.getAttribute('aria-label')))));
       // O estoque também pode ter mudado durante o caminho.
-      const escolha = await esperar(receita, 'Não encontrei a receita da poção maior.');
+      const escolha = await esperar(receita, 'Receita da poção maior não encontrada.');
       if (!valido()) return;
       const estoque = inteiroOficina(normal(escolha.getAttribute('aria-label')).match(/, ([\d.]+) na mochila$/)?.[1]);
-      if (estoque === null) throw Error('Não consegui conferir quantas poções maiores você tem.');
+      if (estoque === null) throw Error('Estoque da poção maior indisponível.');
       if (estoque > 0) { await voltar(); return; }
-      if (!clicar(escolha)) throw Error('Não consegui selecionar a poção maior.');
-      const seletor = await esperar(()=>unico(todos('.forge-stage-center .forge-jewel-quantity select')), 'Não consegui conferir a quantidade de poções.');
+      if (!clicar(escolha)) throw Error('Selecione a poção maior na Oficina.');
+      const seletor = await esperar(()=>unico(todos('.forge-stage-center .forge-jewel-quantity select')), 'Confira a quantidade de poções.');
       if (!valido()) return;
       if (seletor.value !== '1') {
-        if (!habilitado(seletor) || ![...seletor.options].some(o=>o.value === '1')) throw Error('Não consegui escolher uma única poção.');
+        if (!habilitado(seletor) || ![...seletor.options].some(o=>o.value === '1')) throw Error('Selecione uma poção por vez.');
         Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(seletor, '1');
         seletor.dispatchEvent(new Event('change', {bubbles:true}));
       }
-      const r = await esperar(receitaMaior, 'A receita mudou. Confira o ingrediente, a quantidade e o ouro configurados para o craft.');
+      const r = await esperar(receitaMaior, 'A receita mudou. Confira ingrediente, quantidade e ouro do craft.');
       if (!valido()) return;
       let ingrediente = r.ingrediente;
       let semRecursos = r.disponivel < materiais.ouro;
       if (!semRecursos && (!materiais.ingredientes.includes(ingrediente) || !(r.slot.inserido === materiais.quantidade || r.estoque >= materiais.quantidade))) {
-        await acionar(()=>unico(todos('.forge-potion-swap-button')), 'Não consegui abrir a escolha de ingredientes.');
+        await acionar(()=>unico(todos('.forge-potion-swap-button')), 'Abra o seletor de ingredientes.');
         const cartao = nome => unico(todos('.forge-potion-ingredient-card').filter(el=>normal(el.querySelector('strong')?.textContent) === nome));
         const escolhaParte = await esperar(()=>{
           const opcoes = materiais.ingredientes.map(nome=>{
@@ -459,7 +463,7 @@
           });
           const disponivel = opcoes.find(opcao=>opcao.estoque >= materiais.quantidade);
           return disponivel || (opcoes.every(opcao=>opcao.estoque !== null) && {nome:null});
-        }, 'Não consegui conferir os ingredientes configurados na mochila.');
+        }, 'Confira os ingredientes configurados na mochila.');
         if (!valido()) return;
         ingrediente = escolhaParte.nome;
         semRecursos = !ingrediente;
@@ -484,17 +488,17 @@
             if (outro) ajustar(outro, '0');
             else ajustar(alvo, String(materiais.quantidade));
             return selecaoCorreta();
-          }, 'Não consegui selecionar a quantidade configurada do ingrediente.');
+          }, 'Confira a quantidade do ingrediente.');
           const encaixar = () => todos('.forge-potion-ingredient-apply');
-          await acionar(()=>selecaoCorreta() && unico(encaixar()), 'Não consegui encaixar a parte da poção maior.');
-          await esperar(()=>!encaixar().length && receitaMaior()?.ingrediente === ingrediente, 'Não consegui confirmar a parte escolhida.');
-        } else await acionar(()=>unico(todos('.forge-potion-ingredient-cancel')), 'Feche a escolha de ingredientes para continuar.');
+          await acionar(()=>selecaoCorreta() && unico(encaixar()), 'Confira o encaixe do ingrediente.');
+          await esperar(()=>!encaixar().length && receitaMaior()?.ingrediente === ingrediente, 'Ingrediente escolhido sem confirmação.');
+        } else await acionar(()=>unico(todos('.forge-potion-ingredient-cancel')), 'Feche o seletor de ingredientes.');
       }
       if (!valido()) return;
       if (semRecursos) {
         if (!await voltar()) return;
         faltaRecursosMaior = {conferidoEm:agoraAtivo()};
-        status('Falta ingrediente configurado ou ouro para fabricar. Vou caçar sem limite de fadiga e conferir os recursos de novo em 1 minuto.');
+        status('Sem ingrediente ou ouro. Caçando sem limite de fadiga. Nova conferência em 1 min.');
         return;
       }
       const receitaPronta = atual => atual?.ingrediente === ingrediente && atual.disponivel >= materiais.ouro && atual.slot.inserido === materiais.quantidade && atual.slotOuro.inserido === materiais.ouro;
@@ -503,20 +507,20 @@
           const atual = receitaMaior();
           if (atual?.ingrediente !== ingrediente || atual.disponivel < materiais.ouro || !(atual.slot.inserido === materiais.quantidade || atual.estoque >= materiais.quantidade)) return null;
           return unico(todos('button.forge-fill-recipe'));
-        }, 'Não consegui preencher a receita da poção maior.');
+        }, 'Confira o preenchimento da receita.');
       }
-      await esperar(()=>receitaPronta(receitaMaior()), 'Não consegui confirmar os ingredientes nos encaixes.');
+      await esperar(()=>receitaPronta(receitaMaior()), 'Confira os ingredientes nos encaixes.');
       if (!valido()) return;
       await esperar(()=>{
         const final = receitaMaior(), botao = final && unico(todos('button.forge-potion-craft-button', final.bancada));
-        if (!receitaPronta(final) || !botao || rotuloControle(botao) !== 'preparar pocao de vigor maior') throw Error('A receita mudou antes da confirmação. Confira a Oficina.');
+        if (!receitaPronta(final) || !botao || rotuloControle(botao) !== 'preparar pocao de vigor maior') throw Error('A receita mudou. Confira a Oficina.');
         if (!habilitado(botao)) return false;
         pendente = {tipo:'fabricacao', inicio:agoraAtivo(), estoqueAntes:0};
-        if (!clicar(botao)) { pendente = null; throw Error('Não consegui confirmar a fabricação.'); }
+        if (!clicar(botao)) { pendente = null; throw Error('Fabricação sem confirmação. Confira a Oficina.'); }
         return true;
-      }, 'A Oficina ainda não liberou a fabricação.');
+      }, 'Aguardando liberação da fabricação.');
       if (!valido()) return;
-      status('Fabricando uma poção maior. Esperando o jogo confirmar…');
+      status('Fabricando a maior. Aguardando confirmação…');
       await esperar(()=> {
         const sucesso = unico(todos('.workshop-craft-result').filter(el=>todos('h1,h2,h3',el).some(h=>normal(h.textContent) === 'pocao de vigor maior fabricada')));
         const total = normal(receita()?.getAttribute('aria-label')).match(/, ([\d.]+) na mochila$/);
@@ -526,10 +530,10 @@
           return true;
         }
         return false;
-      }, 'O jogo não confirmou a fabricação. Confira a Oficina antes de continuar; não vou fabricar outra poção.', 45000);
+      }, 'Fabricação sem confirmação. Confira a Oficina antes de retomar.', 45000);
       if (!valido()) return;
       if (!await voltar()) return;
-      status('Poção maior fabricada. Voltei à Caçada e vou conferir a fadiga.');
+      status('Maior fabricada. Conferindo a fadiga na Caçada.');
     } catch (e) {
       if (valido()) pausar(e.message, true);
     } finally { if (preparacao === token) preparacao = null; }
@@ -541,7 +545,7 @@
     const candidatos = [...dialogs];
     // O resultado pode ser um painel sem role="dialog". Procura seu menor
     // contêiner a partir de Continuar, exigindo os textos da caçada concluída.
-    for (const btn of todos('button').filter(b => normal(b.textContent) === 'continuar')) {
+    for (const btn of [...document.querySelectorAll('button')].filter(b => normal(b.textContent) === 'continuar' && visivel(b))) {
       let el = btn.parentElement;
       for (let nivel = 0; el && nivel < 8 && el !== document.body && el !== document.documentElement; nivel++, el = el.parentElement) {
         const t = texto(el);
@@ -595,77 +599,74 @@
     :host{all:initial;color-scheme:dark}*{box-sizing:border-box}section{background:#141d24;color:#f2eee4;border:1px solid #b99b60;border-radius:10px;padding:15px;font:13px/1.45 system-ui;box-shadow:0 8px 32px #0008;max-height:calc(100vh - 90px);overflow:auto}h2{font-size:17px;margin:0 0 8px}p{color:#d6c399}label{display:block;margin:8px 0}input,select{display:block;width:100%;background:#25323d;border:1px solid #65727b;border-radius:4px;color:white;font:inherit;padding:6px}input[type=checkbox]{display:inline;width:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}button{font:inherit;border:0;border-radius:4px;padding:8px;cursor:pointer;background:#c0a269;color:#101820}output{display:block;background:#25323d;padding:9px;white-space:pre-wrap}pre{font:11px/1.5 monospace;white-space:pre-wrap;max-height:160px;overflow:auto}small{color:#bcc9d2}
     #moverPainel{cursor:grab;touch-action:none;user-select:none;margin-bottom:12px}#moverPainel[data-arrastando]{cursor:grabbing}#moverPainel small{display:block}
     [role=tab][aria-selected=false]{background:#25323d;color:#d6c399;border:1px solid #65727b}[role=tab]:focus-visible{outline:2px solid #f2eee4;outline-offset:2px}#statusExpedicao{margin-top:12px}
-    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.40</h2><small>Arraste este título para mover o painel.</small></header>
-    <p>Escolha como caçar e recuperar o vigor. Se quiser, faça expedições ao mesmo tempo. Depois, clique em Iniciar.</p>
+    </style><section><header id="moverPainel" title="Arraste para mover o painel"><h2>Auren • Assistente de caçada v3.3.41</h2><small>Arraste para mover.</small></header>
     <nav role="tablist" aria-label="Opções de caçada, expedição, extras e pausas"><button id="tabCacada" role="tab" aria-selected="true" aria-controls="abaCacada">Caçada</button><button id="tabExpedicao" role="tab" aria-selected="false" aria-controls="abaExpedicao" tabindex="-1">Expedição</button><button id="tabBoss" role="tab" aria-selected="false" aria-controls="abaBoss" tabindex="-1">Extras</button><button id="tabPausas" role="tab" aria-selected="false" aria-controls="abaPausas" tabindex="-1">Pausas</button></nav>
     <div id="abaCacada" role="tabpanel" aria-labelledby="tabCacada">
-    <label>Criatura que você quer caçar<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
-    <small>Digite o nome igual ao do jogo e deixe a região da criatura aberta.</small>
-    <label>Como recuperar o vigor?<select id="modo"><option value="pocao">Usar poções quando precisar</option><option value="natural">Esperar o vigor voltar sozinho</option></select></label>
-    <label>Vigor mínimo para caçar (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label>
-    <label>Usar a poção comum até (%)<input id="limiteAlivio" type="text" inputmode="decimal" value="70"></label>
-    <small>Para recuperar vigor, usa apenas a poção comum até o valor escolhido. Depois, espera o vigor voltar. A poção maior só é usada para baixar a fadiga quando o controle abaixo estiver ligado.</small>
-    <label><input id="economizar" type="checkbox" checked> Esperar um pouco e poupar poções</label>
-    <label>Esperar quando faltar até (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
-    <small>Exemplo: se você caça com 80% e escolhe 5, o bot espera o vigor subir de 75% para 80% sem gastar poção. Essa espera vale para recuperar vigor. Se o controle de fadiga estiver ligado, o limite de fadiga vem primeiro.</small>
-    <label><input id="controlarFadiga" type="checkbox"> Manter a fadiga abaixo do limite</label>
-    <label>Limite de fadiga, em pontos<input id="limiteFadiga" type="text" inputmode="numeric" value="100" disabled></label>
-    <label><input id="aproveitarMaior" type="checkbox" disabled> Gastar mais vigor antes de usar a poção maior</label>
-    <label>Fadiga extra permitida, em pontos<input id="folgaFadiga" type="text" inputmode="numeric" value="5" disabled></label>
-    <label>Usar a maior quando o vigor chegar a (%)<input id="vigorMaior" type="text" inputmode="decimal" value="30" disabled></label>
-    <small>Com esta opção ligada, ao atingir o limite de fadiga continua caçando para aproveitar a recuperação da maior, mesmo abaixo do vigor mínimo habitual. Usa a maior quando o vigor chega ao valor escolhido, fica abaixo de 30% ou a próxima vitória ultrapassaria a margem de fadiga. Exemplo: limite 100 e margem 5 permitem chegar a 105 pontos.</small>
-    <small>Use um número inteiro de 2 ou mais. Cada vitória soma 1 ponto. Sem a opção de gastar mais vigor, usa a maior antes que a próxima vitória chegue ao limite. Exemplo: limite 100 significa ficar em até 99 pontos.</small>
-    <p>Só a poção comum é escolhida para recuperar vigor. Com este controle ligado, a maior é usada para baixar a fadiga, mesmo se você escolheu esperar o vigor voltar sozinho. Ela também enche o vigor.</p>
-    <small>O bot abre os detalhes do Vigor para conferir a fadiga. Com vigor cheio e a poção maior indisponível, faz uma caçada para gastar vigor, mesmo se a fadiga já estiver no limite. Após o resultado, volta a conferir a fadiga. Se a maior acabar, só tenta fabricá-la quando a opção abaixo estiver marcada.</small>
-    <label><input id="fabricarMaior" type="checkbox" disabled> Fabricar poções de vigor maior se necessário</label>
-    <small>Fabrica uma poção por vez com a receita configurada abaixo e retorna à Caçada. Se faltar ingrediente ou ouro, continua caçando sem limite de fadiga e confere os recursos novamente a cada minuto.</small>
-    <details><summary>Configurar craft da poção maior</summary>
-      <label>Ingrediente(s) aceito(s)<input id="craftIngredientes" value="Olho de corvo; Coração de serpente" maxlength="500" disabled></label>
-      <small>Use o nome exato do jogo. Para permitir ingredientes alternativos, separe os nomes por ponto e vírgula. Usa apenas um desses tipos por poção.</small>
-      <label>Quantidade do ingrediente por poção<input id="craftQuantidade" type="text" inputmode="numeric" value="1" disabled></label>
+    <label>Criatura<input id="criatura" placeholder="Ex.: Corvo do eclipse" maxlength="100"></label>
+    <small>Nome exato do jogo. Deixe a região aberta.</small>
+    <label>Recuperação de vigor<select id="modo"><option value="pocao">Poções</option><option value="natural">Regeneração</option></select></label>
+    <label>Vigor mínimo (%)<input id="atacar" type="text" inputmode="decimal" value="80"></label>
+    <label>Poção comum até (%)<input id="limiteAlivio" type="text" inputmode="decimal" value="70"></label>
+    <small>A comum recupera vigor até esse limite. Acima dele, aguarda regenerar. A maior reduz fadiga.</small>
+    <label><input id="economizar" type="checkbox" checked> Poupar poções</label>
+    <label>Margem para esperar (%)<input id="margem" type="text" inputmode="decimal" value="5"></label>
+    <small>Com mínimo 80% e margem 5, aguarda de 75% a 80%. A fadiga tem prioridade.</small>
+    <label><input id="controlarFadiga" type="checkbox"> Controlar fadiga</label>
+    <label>Limite de fadiga (pontos)<input id="limiteFadiga" type="text" inputmode="numeric" value="100" disabled></label>
+    <label><input id="aproveitarMaior" type="checkbox" disabled> Gastar vigor antes da maior</label>
+    <label>Fadiga extra (pontos)<input id="folgaFadiga" type="text" inputmode="numeric" value="5" disabled></label>
+    <label>Usar maior com vigor até (%)<input id="vigorMaior" type="text" inputmode="decimal" value="30" disabled></label>
+    <small>Pode caçar abaixo do mínimo. Usa a maior no vigor escolhido, abaixo de 30% ou ao esgotar a margem. Ex.: limite 100 + 5 permite 105.</small>
+    <small>Limite mínimo 2. Cada vitória soma 1. Sem aproveitar a maior, reduz fadiga antes do limite.</small>
+    <small>Se a maior estiver bloqueada por vigor cheio, caça uma vez e relê a fadiga.</small>
+    <label><input id="fabricarMaior" type="checkbox" disabled> Fabricar poção maior</label>
+    <small>Fabrica uma por vez. Sem recursos, caça sem limite de fadiga e confere novamente em 1 min.</small>
+    <details><summary>Configurar craft</summary>
+      <label>Ingredientes permitidos<input id="craftIngredientes" value="Olho de corvo; Coração de serpente" maxlength="500" disabled></label>
+      <small>Nomes exatos, separados por ;. Usa um tipo por poção.</small>
+      <label>Quantidade por poção<input id="craftQuantidade" type="text" inputmode="numeric" value="1" disabled></label>
       <label>Ouro por poção<input id="craftOuro" type="text" inputmode="numeric" value="1900" disabled></label>
-      <small>Atualize estes valores quando o jogo mudar a receita. Confere as quantidades e o custo na Oficina antes de gastar.</small>
+      <small>Ajuste à receita do jogo. O bot confere antes de gastar.</small>
     </details>
     </div>
     <div id="abaExpedicao" role="tabpanel" aria-labelledby="tabExpedicao" hidden>
-      <label><input id="manterExpedicao" type="checkbox"> Iniciar outra expedição quando a atual terminar</label>
-      <label>Tempo de cada nova expedição<select id="duracaoExpedicao" disabled><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option></select></label>
-      <small>Antes de ativar, escolha o território, o grau e a estratégia na tela Expedição do jogo. O bot inicia a viagem e volta à Caçada. Se já houver uma viagem em andamento, espera ela terminar. O tempo escolhido vale para a próxima.</small>
-      <output id="statusExpedicao" aria-live="polite">Ative se quiser manter uma expedição enquanto caça.</output>
+      <label><input id="manterExpedicao" type="checkbox"> Renovar expedição</label>
+      <label>Duração<select id="duracaoExpedicao" disabled><option value="15">15 minutos</option><option value="60" selected>1 hora</option><option value="240">4 horas</option></select></label>
+      <small>Escolha território, grau e estratégia no jogo. Mantém a viagem atual; aplica a duração nas próximas e volta à Caçada.</small>
+      <output id="statusExpedicao" aria-live="polite">Renovação desligada.</output>
     </div>
     <div id="abaBoss" role="tabpanel" aria-labelledby="tabBoss" hidden>
-      <label>Qual Boss atacar?<select id="bossDestino"><option value="auto">Boss da tela atual</option><option value="guilda">Boss da guilda</option><option value="mundo">Boss do mundo</option></select></label>
-      <p>Escolhe o maior dano disponível contra o Boss da guilda ou do mundo.</p>
-      <small>O Boss funciona sozinho ou junto com a caçada. Iniciar Boss e Pausar Boss controlam apenas este extra.</small>
-      <small>Respeita o limite de 8 ataques por pessoa em cada encontro e o intervalo de 15 minutos. Escolhe o maior dano entre os ataques disponíveis no jogo. Entre as investidas, a caçada continua. O extra confere o Boss entre as ações da caçada e retorna depois.</small>
+      <label>Boss<select id="bossDestino"><option value="auto">Tela atual</option><option value="guilda">Guilda</option><option value="mundo">Mundo</option></select></label>
+      <p>Ataca com o maior dano disponível.</p>
+      <small>Funciona com a caçada ativa ou parada.</small>
+      <small>Até 8 investidas por encontro, a cada 15 min. Retorna à Caçada entre ataques.</small>
       <nav><button id="iniciarBoss">Iniciar Boss</button><button id="pausarBoss">Pausar Boss</button></nav>
-      <output id="statusBoss" aria-live="polite">Clique em Iniciar Boss para abrir o combate e acompanhar as investidas.</output>
+      <output id="statusBoss" aria-live="polite">Boss parado.</output>
     </div>
     <div id="abaPausas" role="tabpanel" aria-labelledby="tabPausas" hidden>
-      <label><input id="pausasAleatorias" type="checkbox"> Fazer pausas automáticas</label>
-      <p>Escolha duas faixas. O bot sorteia quando vai pausar e quanto tempo vai descansar.</p>
-      <div class="grid"><label>Pausar depois de, no mínimo (min)<input id="intervaloPausaMin" type="text" inputmode="numeric" value="20" disabled></label><label>E, no máximo (min)<input id="intervaloPausaMax" type="text" inputmode="numeric" value="40" disabled></label></div>
-      <div class="grid"><label>Descansar por, no mínimo (min)<input id="duracaoPausaMin" type="text" inputmode="numeric" value="2" disabled></label><label>E, no máximo (min)<input id="duracaoPausaMax" type="text" inputmode="numeric" value="5" disabled></label></div>
-      <small>Exemplo: pausar a cada 20 a 40 minutos e descansar por 2 a 5 minutos. Use minutos inteiros de 1 a 1440. Para um tempo fixo, coloque o mesmo número nos dois campos.</small>
-      <p>O bot termina a ação em andamento antes de pausar. Durante o descanso, não luta, não usa poções e não inicia expedições. Os avisos ativados continuam funcionando, e uma expedição já iniciada continua no jogo.</p>
-      <small>Ao terminar a pausa, volta à Caçada e confere o jogo antes de continuar. Pausar, ocultar o painel ou mudar uma opção cancela as pausas marcadas. Clique em Iniciar para sortear de novo. O Chrome pode atrasar os horários se a aba ficar lenta ou suspensa.</small>
+      <label><input id="pausasAleatorias" type="checkbox"> Pausas automáticas</label>
+      <div class="grid"><label>Caçar de (min)<input id="intervaloPausaMin" type="text" inputmode="numeric" value="20" disabled></label><label>Até (min)<input id="intervaloPausaMax" type="text" inputmode="numeric" value="40" disabled></label></div>
+      <div class="grid"><label>Descansar de (min)<input id="duracaoPausaMin" type="text" inputmode="numeric" value="2" disabled></label><label>Até (min)<input id="duracaoPausaMax" type="text" inputmode="numeric" value="5" disabled></label></div>
+      <small>Use de 1 a 1440 min. Valores iguais fixam a duração.</small>
+      <p>A pausa espera a ação terminar e suspende lutas, poções e novas viagens. Avisos continuam ativos.</p>
+      <small>Ao fim, volta à Caçada. Pausar, ocultar ou editar opções cancela os horários; Iniciar sorteia de novo.</small>
       <output id="statusPausas" aria-live="polite">Pausas desligadas.</output>
     </div>
-    <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar mesmo sem olhar a aba do jogo</label>
-    <small id="ajudaContinuarOculta">Permite caçar e atacar bosses com o Chrome minimizado ou outra aba aberta. Mantenha o jogo, o Chrome e o computador ligados. Em segundo plano, as ações podem demorar mais.</small>
-    <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Tentar continuar sozinho após um erro</label>
-    <small id="ajudaReinicio">Se um erro parar a caçada, tenta continuar a cada 10 segundos. Primeiro, confere o vigor e espera a resposta do jogo. Pausar, ocultar o painel ou mudar uma opção cancela essas tentativas.</small>
-    <nav><button id="configurarAvisos">Configurar avisos</button></nav><small id="statusAvisos" aria-live="polite">Avisos desligados.</small>
+    <label><input id="continuarOculta" type="checkbox" aria-describedby="ajudaContinuarOculta"> Continuar em segundo plano</label>
+    <small id="ajudaContinuarOculta">Caçada e Boss com o Chrome minimizado. Mantenha jogo e computador ligados; os ciclos podem atrasar.</small>
+    <label><input id="reiniciarAutomaticamente" type="checkbox" aria-describedby="ajudaReinicio">Retomar após erro</label>
+    <small id="ajudaReinicio">Tenta a cada 10 s, após conferir o jogo. Pausar, ocultar ou editar opções cancela as tentativas.</small>
+    <nav><button id="configurarAvisos">Avisos</button></nav><small id="statusAvisos" aria-live="polite">Avisos desligados.</small>
     <nav><button id="diagnostico">Pausar e conferir</button><button id="iniciar">Iniciar</button><button id="pausar">Pausar</button><button id="fechar">Ocultar painel</button></nav>
-    <small>Ocultar interrompe a caçada e os extras. Para abrir o painel de novo, clique no ícone da extensão. O bot continua fechando os avisos do jogo que reconhece.</small>
-    <output id="status" aria-live="polite">Escolha suas opções e clique em Iniciar para começar.</output><pre id="log"></pre></section>`;
+    <small>Ocultar pausa caçada e extras. Reabra pelo ícone da extensão; os avisos do jogo continuam sendo fechados.</small>
+    <output id="status" aria-live="polite">Pronto para iniciar.</output><pre id="log"></pre></section>`;
   document.documentElement.appendChild(host);
   const ui = id => root.getElementById(id);
   window.aurenAvisos?.ouvirAvisosWindows?.(texto=>{ui('statusAvisos').textContent=texto;});
   ui('configurarAvisos').onclick = async () => {
     try {
       const result = await chrome.runtime.sendMessage({origem:'auren-avisos-windows', comando:'configurar'});
-      if (!result?.ok) throw Error(result?.erro || 'Não consegui abrir os avisos. Tente de novo.');
+      if (!result?.ok) throw Error(result?.erro || 'Falha ao abrir avisos. Tente novamente.');
     } catch(error) { ui('statusAvisos').textContent=error.message; }
   };
   function abrirAba(id) {
@@ -724,7 +725,7 @@
     const caixa = host.getBoundingClientRect();
     posicionarPainel(caixa.left, caixa.top);
   });
-  let timer = null, pendente = null, removido = false, config = null, selecionando = null, preparacao = null;
+  let timer = null, timerResposta = null, pendente = null, config = null, selecionando = null, preparacao = null;
   let timerReinicio = null, reinicioArmado = false;
   let faltaRecursosMaior = null;
   let planoPausas = null;
@@ -746,7 +747,7 @@
         if (!await prepararModalidade(token)) return;
       }
     } catch (error) {
-      pausar(`Não consegui voltar do Boss à Caçada: ${error.message}`, true);
+      pausar(`Volta do Boss à Caçada: ${error.message}`, true);
     } finally {
       if (preparacao === token) preparacao = null;
       vezBoss = false;
@@ -754,30 +755,58 @@
     }
   }
   const observarProntidao = new MutationObserver(registros => {
+    const mudancas = registros.filter(r=>!(r.target instanceof Element && r.target.closest('#auren-cacada-v3')));
+    if (!mudancas.length) return;
+    // Abrir/fechar a consulta de fadiga não é uma resposta do jogo. Evita ciclos
+    // provocados pela própria consulta quando não há poções disponíveis.
+    const alternouDetalhes = r => r.type === 'attributes'
+      ? r.target.matches('.hunt-health-details') && ['hidden','class','style'].includes(r.attributeName)
+      : r.type === 'childList' && r.addedNodes.length + r.removedNodes.length > 0 &&
+        [...r.addedNodes, ...r.removedNodes].every(no=>no.nodeType === Node.ELEMENT_NODE && no.matches('.hunt-health-details'));
+    if (mudancas.some(r=>!alternouDetalhes(r) && (r.attributeName !== 'style' || r.target.matches('.hunt-vitality progress, [role="dialog"], [aria-modal="true"]')))) agendarCiclo();
     if (!ataquePronto) return;
     const { botao, criatura, modo } = ataquePronto;
     if (!botao.isConnected || !criatura.isConnected || !modo.isConnected || window.aurenAvisos?.verificacaoHumana ||
         todos('dialog[open], [role="dialog"], [aria-modal="true"]').length ||
-        registros.some(r => r.type === 'attributes' &&
+        mudancas.some(r => r.type === 'attributes' &&
           [botao, criatura, modo].some(el => r.target === el || r.target.contains(el)))) ataquePronto = null;
   });
   observarProntidao.observe(document.documentElement, {
-    childList: true, subtree: true, attributes: true,
-    attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-pressed', 'aria-selected', 'data-selected', 'class', 'hidden', 'style']
+    childList: true, subtree: true, characterData: true, attributes: true,
+    attributeFilter: ['disabled', 'aria-disabled', 'aria-busy', 'aria-pressed', 'aria-selected', 'data-selected', 'class', 'hidden', 'style', 'value', 'max', 'aria-valuenow', 'aria-valuetext', 'data-state']
   });
+  function agendarCiclo() {
+    if (!timer || preparacao || vezBoss || timerResposta !== null) return;
+    timerResposta = setTimeout(()=>{
+      timerResposta = null;
+      ciclo();
+    },150);
+  }
   const linhas = [];
   function status(msg) {
-    ui('status').textContent = `${timer ? (planoPausas?.retomarEm ? 'Em pausa' : 'Ativo') : 'Pausado'} • ${msg}`;
+    const atual = `${timer ? (planoPausas?.retomarEm ? 'Em pausa' : 'Ativo') : 'Pausado'} • ${msg}`;
+    if (ui('status').textContent !== atual) ui('status').textContent = atual;
     if (linhas[0] && linhas[0].endsWith(msg)) return;
     linhas.unshift(`${new Date().toLocaleTimeString()} ${msg}`);
     linhas.length = Math.min(linhas.length, 35);
     ui('log').textContent = linhas.join('\n');
   }
   function lerConfig() {
-    const c = { criatura: ui('criatura').value.trim(), modo: ui('modo').value, atacar: percentual(ui('atacar').value, 'Vigor mínimo para caçar'), limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção comum'), economizar: ui('economizar').checked, margem: percentual(ui('margem').value, 'Quanto falta para caçar'), continuarOculta: ui('continuarOculta').checked, reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked, manterExpedicao: ui('manterExpedicao').checked, duracaoExpedicao: Number(ui('duracaoExpedicao').value) };
-    if (![15, 60, 240].includes(c.duracaoExpedicao)) throw Error('Escolha 15 minutos, 1 hora ou 4 horas para a expedição.');
-    if (!c.criatura) throw Error('Digite o nome da criatura igual ao do jogo.');
-    if (c.atacar < 30) throw Error('O vigor mínimo para caçar deve ser de pelo menos 30%.');
+    const c = {
+      criatura: ui('criatura').value.trim(),
+      modo: ui('modo').value,
+      atacar: percentual(ui('atacar').value, 'Vigor mínimo para caçar'),
+      limiteAlivio: percentual(ui('limiteAlivio').value, 'Limite da poção comum'),
+      economizar: ui('economizar').checked,
+      margem: percentual(ui('margem').value, 'Quanto falta para caçar'),
+      continuarOculta: ui('continuarOculta').checked,
+      reiniciarAutomaticamente: ui('reiniciarAutomaticamente').checked,
+      manterExpedicao: ui('manterExpedicao').checked,
+      duracaoExpedicao: Number(ui('duracaoExpedicao').value)
+    };
+    if (![15, 60, 240].includes(c.duracaoExpedicao)) throw Error('Expedição: escolha 15 min, 1 h ou 4 h.');
+    if (!c.criatura) throw Error('Informe a criatura pelo nome do jogo.');
+    if (c.atacar < 30) throw Error('Vigor mínimo: pelo menos 30%.');
     c.controlarFadiga = ui('controlarFadiga').checked;
     c.bossDestino = ui('bossDestino').value;
     c.fabricarMaior = c.controlarFadiga && ui('fabricarMaior').checked;
@@ -788,9 +817,9 @@
     if (c.fabricarMaior) {
       const ingredientes = [...new Set(c.craftIngredientes.split(';').map(normal).filter(Boolean))];
       const quantidade = inteiroOficina(c.craftQuantidade), ouro = inteiroOficina(c.craftOuro);
-      if (!ingredientes.length) throw Error('Craft: informe o nome de pelo menos um ingrediente.');
-      if (quantidade === null || quantidade < 1) throw Error('Craft: a quantidade do ingrediente deve ser um inteiro de 1 ou mais.');
-      if (ouro === null) throw Error('Craft: informe uma quantidade inteira de ouro de 0 ou mais.');
+      if (!ingredientes.length) throw Error('Craft: informe pelo menos um ingrediente.');
+      if (quantidade === null || quantidade < 1) throw Error('Craft: quantidade inteira de 1 ou mais.');
+      if (ouro === null) throw Error('Craft: ouro inteiro de 0 ou mais.');
       c.craft = {ingredientes, quantidade, ouro};
     }
     c.aproveitarMaior = c.controlarFadiga && ui('aproveitarMaior').checked;
@@ -799,13 +828,13 @@
     c.limiteFadiga = null;
     if (c.controlarFadiga) {
       const valor = ui('limiteFadiga').value.trim();
-      if (!/^\d+$/.test(valor) || !Number.isSafeInteger(Number(valor)) || Number(valor) < 2) throw Error('Limite de fadiga: digite um número inteiro de 2 ou mais. Cada vitória soma 1 ponto.');
+      if (!/^\d+$/.test(valor) || !Number.isSafeInteger(Number(valor)) || Number(valor) < 2) throw Error('Fadiga: use um número inteiro de 2 ou mais.');
       c.limiteFadiga = Number(valor);
     }
     if (c.aproveitarMaior) {
       const folga = ui('folgaFadiga').value.trim();
       if (!/^\d+$/.test(folga) || !Number.isSafeInteger(Number(folga)) ||
-          !Number.isSafeInteger(c.limiteFadiga + Number(folga))) throw Error('Fadiga extra: digite um número inteiro de 0 ou mais, dentro do limite numérico.');
+          !Number.isSafeInteger(c.limiteFadiga + Number(folga))) throw Error('Fadiga extra: use um inteiro válido de 0 ou mais.');
       c.folgaFadiga = Number(folga);
       c.vigorMaior = percentual(ui('vigorMaior').value, 'Vigor para usar a maior');
     }
@@ -814,10 +843,10 @@
       c[id] = null;
       if (!c.pausasAleatorias) continue;
       const valor = ui(id).value.trim();
-      if (!/^\d+$/.test(valor) || Number(valor) < 1 || Number(valor) > 1440) throw Error(`${nome}: digite minutos inteiros de 1 a 1440.`);
+      if (!/^\d+$/.test(valor) || Number(valor) < 1 || Number(valor) > 1440) throw Error(`${nome}: use minutos inteiros de 1 a 1440.`);
       c[id] = Number(valor);
     }
-    if (c.pausasAleatorias && c.intervaloPausaMin > c.intervaloPausaMax) throw Error('O tempo mínimo antes de pausar não pode ser maior que o máximo.');
+    if (c.pausasAleatorias && c.intervaloPausaMin > c.intervaloPausaMax) throw Error('O mínimo não pode ser maior que o máximo.');
     if (c.pausasAleatorias && c.duracaoPausaMin > c.duracaoPausaMax) throw Error('O descanso mínimo não pode ser maior que o máximo.');
     return c;
   }
@@ -827,13 +856,13 @@
   function atualizarStatusPausas() {
     let texto;
     if (!ui('pausasAleatorias').checked) texto = 'Pausas desligadas.';
-    else if (!planoPausas) texto = 'Quando a caçada começar, vou sortear a próxima pausa.';
+    else if (!planoPausas) texto = 'A próxima pausa será sorteada ao iniciar.';
     else if (planoPausas.retomarEm) {
       const faltam = Math.ceil((planoPausas.retomarEm - Date.now()) / 60000);
-      texto = faltam > 0 ? `Descansando. Volto em até ${faltam} min.` : 'O descanso terminou. Esperando o jogo liberar a volta.';
+      texto = faltam > 0 ? `Descanso: até ${faltam} min.` : 'Descanso concluído. Aguardando o jogo.';
     } else {
       const faltam = Math.ceil((planoPausas.proximaEm - Date.now()) / 60000);
-      texto = faltam > 0 ? `Próxima pausa em até ${faltam} min. Vou descansar por ${planoPausas.duracaoMinutos} min.` : 'A pausa está pronta. Vou terminar a ação do jogo antes de descansar.';
+      texto = faltam > 0 ? `Pausa em até ${faltam} min. Descanso de ${planoPausas.duracaoMinutos} min.` : 'Pausa pronta. Concluindo a ação atual.';
     }
     // O texto muda só quando o minuto ou a etapa muda.
     if (ui('statusPausas').textContent !== texto) ui('statusPausas').textContent = texto;
@@ -859,16 +888,17 @@
     timer = setInterval(ciclo, 2200); ui('iniciar').disabled = true;
     window.aurenSegundoPlano?.registrar('cacada',ciclo);
     atualizarStatusPausas();
-    status(planoPausas?.retomarEm ? 'Continuando seu descanso. Vou voltar à caçada sozinho.' : 'Caçada iniciada. Vou lutar e recuperar o vigor como você escolheu.');
+    status(planoPausas?.retomarEm ? 'Descanso em andamento. Retomada automática.' : 'Caçada ativa.');
   }
   function iniciarPausaSorteada() {
     if (!planoPausas || planoPausas.retomarEm || Date.now() < planoPausas.proximaEm) return false;
     planoPausas.retomarEm = Date.now() + planoPausas.duracaoMinutos * 60000;
     atualizarStatusPausas();
-    status(`Pausa de ${planoPausas.duracaoMinutos} min. Vou continuar sozinho depois do descanso.`);
+    status(`Descanso de ${planoPausas.duracaoMinutos} min. Retomada automática.`);
     return true;
   }
-  function pausar(msg = 'Caçada pausada. Clique em Iniciar para continuar.', automatica = false) {
+  function pausar(msg = 'Caçada pausada.', automatica = false) {
+    clearTimeout(timerResposta); timerResposta = null;
     window.aurenSegundoPlano?.remover('cacada');
     window.aurenSegundoPlano?.remover('reinicio');
     window.aurenSegundoPlano?.remover('preparacao');
@@ -888,9 +918,9 @@
     // Preserva ação pendente: pausar/retomar não autoriza repetir um clique sem confirmação.
   }
   function agendarReinicio(msg) {
-    if (!reinicioArmado || removido || host.hidden || !config?.reiniciarAutomaticamente) return;
+    if (!reinicioArmado || host.hidden || !config?.reiniciarAutomaticamente) return;
     clearTimeout(timerReinicio);
-    status(`${msg} Vou tentar continuar em 10 segundos.`);
+    status(`${msg} Nova tentativa em 10 s.`);
     timerReinicio = setTimeout(tentarReinicio, 10000);
     window.aurenSegundoPlano?.registrar('reinicio',tentarReinicio);
   }
@@ -917,22 +947,22 @@
     return false;
   }
   function descreverPendencia(incluirTempo = true) {
-    if (!pendente) return 'Nenhuma resposta do jogo em espera.';
-    const tipos = { fabricacao: 'Fabricação da poção maior', ataque: 'Ataque', fechamento: 'Fechar resultado', alivio: 'Poção de vigor', restauradora: pendente.motivo === 'fadiga' ? 'Poção maior para baixar a fadiga' : 'Poção de vigor maior' };
+    if (!pendente) return 'Nenhuma ação pendente.';
+    const tipos = { fabricacao: 'Fabricação da poção maior', ataque: 'Ataque', fechamento: 'Fechar resultado', alivio: 'Poção de vigor', restauradora: pendente.motivo === 'fadiga' ? 'Maior para fadiga' : 'Poção de vigor maior' };
     const segundos = Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000);
-    return `${tipos[pendente.tipo] || 'Ação'} esperando a resposta do jogo${incluirTempo ? ` há ${segundos} segundos de espera` : ''}.`;
+    return `${tipos[pendente.tipo] || 'Ação'} aguardando confirmação${incluirTempo ? ` há ${segundos} s` : ''}.`;
   }
   function recuperarAtaqueSemResultado() {
     motivoRecuperacao = '';
     if (pendente?.tipo !== 'ataque' || agoraAtivo() - pendente.inicio <= prazoInterface(45000)) return false;
     const resultados = todos('button.hero-header-results, button[aria-label="Ver resultados pendentes"]');
     if (resultados.length) {
-      motivoRecuperacao = 'O jogo tem um resultado para mostrar. Esperando ele abrir.';
+      motivoRecuperacao = 'Aguardando o resultado pendente.';
       ataquePronto = null;
       if (resultados.length === 1 && !pendente.tentouAbrirResultados && habilitado(resultados[0])) {
         pendente.tentouAbrirResultados = true;
         clicar(resultados[0]);
-        status('Abrindo o resultado da última luta…');
+        status('Abrindo resultado pendente…');
       }
       return false;
     }
@@ -940,8 +970,8 @@
     const pronto = telaCacada() && modoResultadoConfirmado(modo) &&
       criatura && selecionada(criatura) && habilitado(botao) && !botao.closest('[aria-busy="true"]') &&
       !todos('dialog[open], [role="dialog"], [aria-modal="true"]').length;
-    if (!pronto) { ataquePronto = null; motivoRecuperacao = 'O jogo ainda não permite caçar essa criatura de novo.'; return false; }
-    motivoRecuperacao = 'O jogo liberou outra caçada. Vou esperar 10 segundos para conferir se está tudo pronto.';
+    if (!pronto) { ataquePronto = null; motivoRecuperacao = 'Nova caçada ainda indisponível.'; return false; }
+    motivoRecuperacao = 'Nova caçada liberada. Aguardando 10 s de estabilidade.';
     if (ataquePronto?.registro !== pendente) {
       ataquePronto = { registro: pendente, desde: agoraAtivo(), botao, criatura, modo };
       return false;
@@ -953,47 +983,66 @@
     if (agoraAtivo() - ataquePronto.desde < 10000) return false;
     // A interface está estável e pronta; reavalia um novo ciclo sem presumir o resultado anterior.
     pendente = null; ataquePronto = null; selecionando = null;
-    status('O jogo liberou outra caçada, mas não mostrou o último resultado. Vou conferir o vigor antes de continuar.');
+    status('Último resultado ausente. Nova caçada liberada. Conferindo vigor.');
     return true;
   }
   async function tentarReinicio() {
     timerReinicio = null;
-    if (!reinicioArmado || timer || preparacao || removido || host.hidden) return;
+    if (!reinicioArmado || timer || preparacao || host.hidden) return;
     try {
-      if (avisosBloqueando()) { ataquePronto = null; return agendarReinicio('Esperando você responder ou fechar o aviso no jogo.'); }
-      if (document.hidden && !config.continuarOculta) { ataquePronto = null; return agendarReinicio('Abra a aba do jogo para continuar.'); }
+      if (avisosBloqueando()) { ataquePronto = null; return agendarReinicio('Responda ou feche o aviso no jogo.'); }
+      if (document.hidden && !config.continuarOculta) { ataquePronto = null; return agendarReinicio('Abra a aba do jogo.'); }
       const hp = lerVigor(), r = resultado();
-      if (hp === null) { ataquePronto = null; return agendarReinicio('Esperando o vigor aparecer no jogo.'); }
+      if (hp === null) { ataquePronto = null; return agendarReinicio('Aguardando leitura do vigor.'); }
       if (!confirmarAcaoPendente(hp, r) && !recuperarAtaqueSemResultado()) {
-        return agendarReinicio(`${descreverPendencia(false)} ${motivoRecuperacao || 'Esperando a resposta do jogo antes de tentar outra ação.'}`);
+        return agendarReinicio(`${descreverPendencia(false)} ${motivoRecuperacao || 'Aguardando confirmação do jogo.'}`);
       }
       selecionando = null;
       await iniciar(true);
-    } catch (e) { agendarReinicio(`Não consegui retomar: ${e.message}`); }
+    } catch (e) { agendarReinicio(`Falha ao retomar: ${e.message}`); }
   }
   function diagnostico() {
     const c = lerConfig(), hp = lerVigor(), criatura = localizarCriatura(c.criatura), fadiga = lerFadiga();
-    const d = { vigor: hp, fadiga: fadiga?.atual ?? null, previsaoFadiga: fadiga, fabricacao: {estoqueMaior:estoqueMaior(), semRecursos:!!faltaRecursosMaior}, decisao: hp === null ? 'vigor não identificado' : decidir(c, hp, fadiga?.atual, !!(c.fabricarMaior && faltaRecursosMaior && estoqueMaior() === 0)), modalidadeResultado: { controle: resumo(botaoSoResultado()), confirmada: modoResultadoConfirmado(botaoSoResultado()) }, criatura: resumo(criatura), ataque: resumo(botaoAtacar()), alivio: resumo(botaoPocao('alivio')), restauradora: resumo(botaoPocao('restauradora')), resultadoAberto: !!resultado(), verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana, pendente: pendente && pendente.tipo, segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0, agoraAtivo() - pendente.inicio) / 1000) : null, pausas: planoPausas ? {...planoPausas} : null, configuracao: c };
+    const estoque = estoqueMaior(), modo = botaoSoResultado();
+    const ignorarFadiga = !!(c.fabricarMaior && faltaRecursosMaior && estoque === 0);
+    const d = {
+      vigor: hp,
+      fadiga: fadiga?.atual ?? null,
+      previsaoFadiga: fadiga,
+      fabricacao: {estoqueMaior:estoque, semRecursos:!!faltaRecursosMaior},
+      decisao: hp === null ? 'vigor não identificado' : decidir(c,hp,fadiga?.atual,ignorarFadiga),
+      modalidadeResultado: {controle:resumo(modo), confirmada:modoResultadoConfirmado(modo)},
+      criatura: resumo(criatura),
+      ataque: resumo(botaoAtacar()),
+      alivio: resumo(botaoPocao('alivio')),
+      restauradora: resumo(botaoPocao('restauradora')),
+      resultadoAberto: !!resultado(),
+      verificacaoHumana: !!window.aurenAvisos?.verificacaoHumana,
+      pendente: pendente && pendente.tipo,
+      segundosAguardandoConfirmacao: pendente ? Math.floor(Math.max(0,agoraAtivo()-pendente.inicio)/1000) : null,
+      pausas: planoPausas ? {...planoPausas} : null,
+      configuracao: c
+    };
     console.info('Diagnóstico Auren (nenhum clique):', d);
-    const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'ainda não pode ser usado') : 'não encontrado';
+    const encontrado = el => el ? (habilitado(el) ? 'disponível' : 'indisponível') : 'não encontrado';
     status([
       'Situação do jogo:',
-      hp === null ? 'Vigor: ainda não consegui ver o valor.' : `Vigor atual: ${hp.toFixed(2)}%.`,
+      hp === null ? 'Vigor: indisponível.' : `Vigor: ${hp.toFixed(2)}%.`,
       `Criatura: ${c.criatura} — ${criatura ? 'encontrada' : 'confira o nome e a região aberta'}.`,
-      botaoAcaoResultado() ? 'Só Resultado: botão de ataque direto; será usado após conferir vigor, fadiga e criatura.' :
+      botaoAcaoResultado() ? 'Só Resultado: ataque direto.' :
         `Só Resultado: ${d.modalidadeResultado.confirmada ? 'já selecionado' : 'será marcado ao iniciar'}.`,
-      `Botão para caçar: ${encontrado(botaoAtacar())}.`,
+      `Ataque: ${encontrado(botaoAtacar())}.`,
       `Poção de vigor: ${encontrado(botaoPocao('alivio'))}.`,
       `Poção de vigor maior: ${encontrado(botaoPocao('restauradora'))}.`,
-      `Fadiga: ${!c.controlarFadiga ? 'controle desligado' : fadiga ? `${fadiga.atual} pontos; limite configurado ${c.limiteFadiga}` : 'abra os detalhes do Vigor no jogo para ver o valor'}.`,
-      c.aproveitarMaior ? `Aproveitar a maior: até ${c.limiteFadiga + c.folgaFadiga} de fadiga; usar quando o vigor chegar a ${c.vigorMaior}% ou não puder caçar com a margem.` : 'Aproveitar a maior: desligado.',
-      `Expedições: ${c.manterExpedicao ? `ligada, tempo das próximas viagens: ${c.duracaoExpedicao} minutos` : 'desativada'}.`,
+      `Fadiga: ${!c.controlarFadiga ? 'controle desligado' : fadiga ? `${fadiga.atual} pontos; limite configurado ${c.limiteFadiga}` : 'abra os detalhes do Vigor'}.`,
+      c.aproveitarMaior ? `Maior: fadiga até ${c.limiteFadiga + c.folgaFadiga}, vigor até ${c.vigorMaior}%.` : 'Aproveitar maior: desligado.',
+      `Expedições: ${c.manterExpedicao ? `ligada, próximas viagens de ${c.duracaoExpedicao} min` : 'desativada'}.`,
       `Pausas: ${c.pausasAleatorias ? 'ligadas' : 'desligadas'}.`,
-      pendente ? descreverPendencia() : 'Esta consulta não iniciou lutas nem usou poções.'
+      pendente ? descreverPendencia() : 'Consulta concluída.'
     ].join('\n')); return d;
   }
   function ciclo() {
-    if (!timer || preparacao || removido || vezBoss) return;
+    if (!timer || preparacao || vezBoss) return;
     try {
       atualizarStatusPausas();
       if (planoPausas?.retomarEm && Date.now() < planoPausas.retomarEm) return;
@@ -1001,27 +1050,28 @@
       if (planoPausas?.retomarEm) {
         planoPausas = null;
         clearInterval(timer); timer = null;
-        ui('statusPausas').textContent = 'Descanso terminado. Conferindo o jogo antes de continuar…';
+        ui('statusPausas').textContent = 'Descanso concluído. Conferindo o jogo…';
         void iniciar(true);
         return;
       }
       const hp = lerVigor(), r = resultado(), agora = agoraAtivo();
       if (r && (!pendente || pendente.tipo === 'ataque')) {
         const btn = fecharResultado(r);
-        if (!btn) return pausar('A luta terminou, mas não consegui fechar o resultado. Clique em Continuar no jogo e tente de novo.', true);
+        if (!btn) return pausar('Clique em Continuar no resultado e tente novamente.', true);
         if (clicar(btn)) {
           pendente = { tipo: 'fechamento', inicio: agora };
           selecionando = null;
-          status('Fechando o resultado da luta…');
-        } else status('Esperando o botão Continuar ficar disponível…');
+          status('Fechando resultado…');
+        } else status('Aguardando o botão Continuar…');
         return;
       }
       if (pendente) {
         const tipo = pendente.tipo, baixandoFadiga = pendente.motivo === 'fadiga';
         if (confirmarAcaoPendente(hp, r)) {
-          status(tipo === 'fabricacao' ? 'Poção maior fabricada. Conferindo a fadiga antes de continuar.' : tipo === 'fechamento' ? 'Resultado fechado. Conferindo o vigor para a próxima luta.' : baixandoFadiga ? 'A fadiga baixou. Conferindo o jogo antes de continuar.' : 'O vigor voltou. Conferindo se já dá para caçar.');
+          status(tipo === 'fabricacao' ? 'Maior fabricada. Conferindo fadiga.' : tipo === 'fechamento' ? 'Resultado fechado. Conferindo vigor.' : baixandoFadiga ? 'Fadiga reduzida. Conferindo o jogo.' : 'Vigor recuperado. Conferindo a caçada.');
+          agendarCiclo();
         }
-        if (pendente && agora - pendente.inicio > prazoInterface(45000)) pausar('O jogo demorou a responder. Pausei para não repetir uma ação. Confira o jogo antes de continuar.', true);
+        if (pendente && agora - pendente.inicio > prazoInterface(45000)) pausar('Ação sem confirmação. Confira o jogo antes de retomar.', true);
         return;
       }
       if (selecionando) {
@@ -1031,13 +1081,13 @@
       if (!selecionando && iniciarPausaSorteada()) return;
       // Uma renderização temporária não deve desligar o ciclo. Só decide com uma leitura atual válida.
       if (hp === null) {
-        status('O vigor ainda não apareceu. Vou esperar e continuar quando conseguir ver o valor. Por enquanto, não luto nem uso poções.');
+        status('Vigor indisponível. Aguardando leitura.');
         return;
       }
       if (config.manterExpedicao && agora >= proximaVerificacaoExpedicao) {
         proximaVerificacaoExpedicao = agora + 30000;
         if (estadoExpedicao().ativa) {
-          expedicaoPendente = null; statusExpedicao('Sua expedição está em andamento. A caçada continua.');
+          expedicaoPendente = null; statusExpedicao('Expedição em andamento.');
         } else {
           void manutencaoExpedicao();
           return;
@@ -1051,8 +1101,8 @@
       const fadiga = config.controlarFadiga && !ignorarFadiga ? consultarFadiga() : null;
       let acao = decidir(config, hp, fadiga?.atual, ignorarFadiga);
       let liberarPocaoMaior = false;
-      if (acao === 'pausar') return pausar('Não consegui conferir o vigor. Veja o valor no jogo antes de continuar.', true);
-      if (acao === 'aguardarFadiga') { status('Não consegui ler a fadiga. Vou esperar os detalhes do Vigor aparecerem antes de lutar ou usar poções.'); return; }
+      if (acao === 'pausar') return pausar('Confira o vigor no jogo antes de retomar.', true);
+      if (acao === 'aguardarFadiga') { status('Fadiga indisponível. Aguardando os detalhes do Vigor.'); return; }
       if (acao === 'reduzirFadiga') {
         if (config.fabricarMaior && estoque === 0) { void fabricarPocaoMaior(); return; }
         const maior = botaoPocao('restauradora');
@@ -1060,47 +1110,47 @@
           liberarPocaoMaior = true;
           acao = 'atacar';
         } else {
-          if (!maior) { status('Não encontrei a poção maior. A caçada vai esperar para respeitar seu limite de fadiga.'); return; }
-          if (!habilitado(maior)) { status('A poção maior não está disponível. Vou esperar para respeitar seu limite de fadiga.'); return; }
-          if (!fadiga || fadiga.depoisMaior >= fadiga.atual) { status('Não consegui conferir quanto a poção vai baixar a fadiga. Vou esperar.'); return; }
-          if (!fecharDetalhesFadiga()) { status('Feche os detalhes do Vigor no jogo para continuar.'); return; }
+          if (!maior) { status('Poção maior não encontrada. Aguardando.'); return; }
+          if (!habilitado(maior)) { status('A poção maior não está disponível. Aguardando.'); return; }
+          if (!fadiga || fadiga.depoisMaior >= fadiga.atual) { status('Redução de fadiga desconhecida. Aguardando.'); return; }
+          if (!fecharDetalhesFadiga()) { status('Feche os detalhes do Vigor.'); return; }
           if (clicar(maior)) {
             pendente = {tipo:'restauradora', motivo:'fadiga', inicio:agora, hp, fadigaAntes:fadiga.atual, fadigaEsperada:fadiga.depoisMaior};
-            status(`Usando a poção maior para baixar a fadiga de ${fadiga.atual} para ${fadiga.depoisMaior}. Esperando o jogo confirmar…`);
+            status(`Maior: fadiga ${fadiga.atual} → ${fadiga.depoisMaior}. Aguardando confirmação…`);
           }
           return;
         }
       }
-      if (acao === 'regenerar') { status(`Vigor em ${hp.toFixed(2)}%. Esperando chegar a ${config.atacar}% para caçar.`); return; }
-      if (config.controlarFadiga && !fecharDetalhesFadiga()) { status('Feche os detalhes do Vigor no jogo para continuar.'); return; }
+      if (acao === 'regenerar') { status(`Vigor ${hp.toFixed(2)}%. Aguardando ${config.atacar}%.`); return; }
+      if (config.controlarFadiga && !fecharDetalhesFadiga()) { status('Feche os detalhes do Vigor.'); return; }
       if (acao === 'atacar') {
         const criatura = localizarCriatura(config.criatura);
-        if (!criatura) return pausar('Não encontrei a criatura. Confira o nome e abra a região dela no jogo.', true);
+        if (!criatura) return pausar('Criatura não encontrada. Confira nome e região.', true);
         if (!selecionada(criatura)) {
           if (selecionando && selecionando.nome === config.criatura) {
-            if (agora - selecionando.inicio > prazoInterface(8000)) pausar('O jogo não confirmou a criatura. Escolha ela no jogo e clique em Pausar e conferir.', true);
+            if (agora - selecionando.inicio > prazoInterface(8000)) pausar('Seleção sem confirmação. Escolha a criatura e use Pausar e conferir.', true);
             return;
           }
           const btn = criatura.matches('button,[role="button"]') ? criatura : unico(todos('button,[role="button"]', criatura));
-          if (!clicar(btn)) return pausar('Não consegui escolher a criatura. Clique nela no jogo e tente de novo.', true);
-          selecionando = { nome: config.criatura, inicio: agora }; status('Escolhendo a criatura. Esperando o jogo responder…'); return;
+          if (!clicar(btn)) return pausar('Escolha a criatura no jogo e tente novamente.', true);
+          selecionando = { nome: config.criatura, inicio: agora }; status('Selecionando criatura…'); return;
         }
         selecionando = null;
         const btn = botaoAtacar();
-        if (!clicar(btn)) return pausar('Não consegui começar a luta. Confira se a criatura está escolhida e se o botão de caçar está disponível.', true);
+        if (!clicar(btn)) return pausar('Ataque indisponível. Confira criatura e botão de caçar.', true);
         pendente = { tipo: 'ataque', inicio: agora, hp };
-        status(liberarPocaoMaior ? 'Caçando para gastar o vigor cheio. Esperando o resultado para conferir a fadiga…' : `Caçando ${config.criatura}. Esperando o resultado…`);
+        status(liberarPocaoMaior ? 'Gastando vigor cheio. Aguardando resultado…' : `Caçando ${config.criatura}. Aguardando resultado…`);
         return;
       }
       const btn = botaoPocao(acao);
-      if (!btn) { status(`Não encontrei a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}. Vou esperar o vigor voltar. Para conferir, clique em Pausar e conferir.`); return; }
-      if (!habilitado(btn)) { status(`A poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não está disponível. Vou esperar o vigor voltar.`); return; }
-      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando a poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}. Esperando o vigor voltar…`); }
+      if (!btn) { status(`Poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não encontrada. Aguardando vigor.`); return; }
+      if (!habilitado(btn)) { status(`Poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'} não está disponível. Aguardando vigor.`); return; }
+      if (clicar(btn)) { pendente = { tipo: acao, inicio: agora, hp }; status(`Usando poção ${acao === 'alivio' ? 'de vigor' : 'de vigor maior'}. Aguardando confirmação…`); }
     } catch (e) { pausar(`Não consegui continuar: ${e.message}`, true); }
   }
   async function iniciar(automatico = false, planoSalvo = null) {
-    if (vezBoss) { iniciarDepoisBoss = true; status('Vou iniciar a caçada assim que terminar de conferir a investida do Boss.'); return; }
-    if (timer || preparacao || removido) return;
+    if (vezBoss) { iniciarDepoisBoss = true; status('Aguardando a investida do Boss para iniciar.'); return; }
+    if (timer || preparacao) return;
     clearTimeout(timerReinicio); timerReinicio = null;
     window.aurenSegundoPlano?.remover('reinicio');
     if (!automatico) reinicioArmado = false;
@@ -1108,7 +1158,7 @@
     try {
       preparacao = token;
       window.aurenSegundoPlano?.registrar('preparacao',ciclo);
-      if (pendente && agoraAtivo() - pendente.inicio > prazoInterface(45000) && !(pendente.tipo === 'ataque' && resultado())) throw Error('O jogo ainda não respondeu à última ação. Confira o jogo e recarregue a página antes de tentar de novo.');
+      if (pendente && agoraAtivo() - pendente.inicio > prazoInterface(45000) && !(pendente.tipo === 'ataque' && resultado())) throw Error('Ação anterior sem confirmação. Confira o jogo e recarregue a página.');
       ui('iniciar').disabled = true;
       // A atualização do jogo pode acontecer durante o descanso. Não navega nem inicia ações nessa retomada.
       if (planoSalvo?.retomarEm && !pendente) {
@@ -1116,8 +1166,8 @@
         const descansoSalvo = restaurarPlanoPausas(planoSalvo);
         if (descansoSalvo) { preparacao = null; ativarCiclo(descansoSalvo); return; }
       }
-      status('Preparando sua caçada…');
-      if (!(await navegarCacada(() => preparacao === token && !removido))) return;
+      status('Preparando caçada…');
+      if (!(await navegarCacada(() => preparacao === token))) return;
       if (preparacao !== token) return;
       if (!(await prepararModalidade(token))) return;
       if (preparacao !== token) return;
@@ -1136,10 +1186,10 @@
       if (!preparacao || preparacao === token) window.aurenSegundoPlano?.remover('preparacao');
     }
   }
-  function fechar() { window.aurenBoss?.pausar(); pausar('Painel fechado e caçada pausada. Clique no ícone da extensão para abrir de novo.'); host.hidden = true; }
+  function fechar() { window.aurenBoss?.pausar(); pausar('Painel oculto. Reabra pelo ícone da extensão.'); host.hidden = true; }
   function prepararAtualizacao() {
     if (window.aurenBoss?.ativo()) {
-      window.aurenBoss.pausar('O jogo vai atualizar. Clique em Iniciar Boss depois da recarga.');
+      window.aurenBoss.pausar('Atualizando jogo. Reinicie o Boss após a recarga.');
     }
     if (!timer || !config) return;
     try {
@@ -1152,7 +1202,7 @@
       clearInterval(timer); timer = null;
       window.aurenSegundoPlano?.remover('cacada');
       window.aurenSegundoPlano?.remover('reinicio');
-      status('O jogo vai atualizar. Vou continuar a caçada quando a página abrir de novo.');
+      status('Atualizando jogo. A caçada será retomada.');
     } catch {
       console.warn('Não foi possível salvar a retomada. Após atualizar o jogo, clique em Iniciar.');
     }
@@ -1180,20 +1230,20 @@
     for (const id of ['folgaFadiga','vigorMaior']) ui(id).disabled = !ui('controlarFadiga').checked || !ui('aproveitarMaior').checked;
   }
   atualizarCampos(); atualizarStatusPausas();
-  if (ui('manterExpedicao').checked) statusExpedicao('Expedição pronta. Clique em Iniciar para caçar e fazer expedições.');
+  if (ui('manterExpedicao').checked) statusExpedicao('Expedição pronta para iniciar.');
   // Serializa as gravações para uma edição mais antiga não sobrescrever a última.
   let gravacao = Promise.resolve();
   function salvar() {
     const valores = Object.fromEntries(campos.map(id => [id, ui(id).type === 'checkbox' ? ui(id).checked : ui(id).value]));
     gravacao = gravacao.then(() => chrome.storage.local.set({ aurenPreferenciasV33: valores })).catch(() => {
-      status('Não consegui salvar suas escolhas. Elas funcionam agora, mas você pode precisar preenchê-las de novo depois.');
+      status('Opções aplicadas, mas não salvas. Confira ao reabrir.');
     });
   }
   root.querySelectorAll('input,select').forEach(el => el.addEventListener('input', () => {
     if (el.id === 'bossDestino') { window.aurenBoss?.pausar(); salvar(); return; }
     atualizarCampos();
-    if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição pronta. Clique em Iniciar para começar.' : 'Não vou iniciar novas expedições. A viagem atual continua no jogo.');
-    selecionando = null; pausar('Opções alteradas. Clique em Iniciar para continuar com elas.'); salvar();
+    if (el.id === 'manterExpedicao') statusExpedicao(el.checked ? 'Expedição pronta para iniciar.' : 'Renovação desligada. A viagem atual continua.');
+    selecionando = null; pausar('Opções alteradas. Clique em Iniciar.'); salvar();
   }));
   chrome.runtime.onMessage.addListener((msg, sender, responder) => {
     if (sender.id !== chrome.runtime.id || !msg || msg.origem !== 'auren-popup-v33') return;
@@ -1203,17 +1253,16 @@
         const caixa = host.getBoundingClientRect();
         posicionarPainel(caixa.left, caixa.top);
       }
-      responder({ ok: true, mensagem: 'Painel aberto. Use Iniciar no painel para executar.' });
+      responder({ ok: true, mensagem: 'Painel aberto.' });
     } else if (msg.comando === 'pausar') {
-      pausar('Caçada pausada pelo botão da extensão.');
-      responder({ ok: true, mensagem: 'Automação pausada nesta aba.' });
+      pausar('Caçada pausada.');
+      responder({ ok: true, mensagem: 'Caçada pausada.' });
     }
   });
-  if (erroArmazenamento) status('Não consegui carregar suas escolhas. Confira os campos antes de começar.');
+  if (erroArmazenamento) status('Falha ao carregar opções. Confira os campos.');
   if (erroNavegacaoInicial) status(erroNavegacaoInicial);
   document.addEventListener('visibilitychange', function oculto() {
-    if (removido) { document.removeEventListener('visibilitychange', oculto); return; }
-    if (document.hidden && (timer || preparacao) && !ui('continuarOculta').checked) pausar('Você saiu da aba do jogo. Pausei a caçada. Clique em Iniciar para continuar.');
+    if (document.hidden && (timer || preparacao) && !ui('continuarOculta').checked) pausar('Aba oculta. Caçada pausada.');
   });
   console.info('Auren instalado. Caçada pausada até clicar em Iniciar. API: window.aurenCacada.');
   // Só a atualização acionada pelo bot permite retomar sem clicar em Iniciar.
@@ -1232,9 +1281,9 @@
       if (['iniciar', 'retomar'].includes(retomada.expedicaoPendente?.acao)) expedicaoPendente = retomada.expedicaoPendente;
       const anterior = retomada.pendente;
       if (anterior && ['ataque', 'fechamento', 'alivio', 'restauradora', 'fabricacao'].includes(anterior.tipo) && Number.isFinite(anterior.inicio)) pendente = { ...anterior, inicio: agoraAtivo() - Math.max(0, Date.now() - anterior.inicio) };
-      status('Jogo atualizado. Continuando a caçada com suas escolhas…');
+      status('Jogo atualizado. Retomando caçada…');
       iniciar(false, retomada.pausas);
     }
-  } catch { status('Não consegui continuar a caçada anterior. Confira as opções e clique em Iniciar.'); }
+  } catch { status('Confira as opções e clique em Iniciar para retomar.'); }
 })().catch(error => console.error('Não foi possível carregar a extensão Auren:', error));
 
