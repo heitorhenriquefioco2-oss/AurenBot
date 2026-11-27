@@ -1,6 +1,6 @@
 # AurenBot
 
-Extensão Chrome de caçada v3.3.41, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
+Extensão Chrome de caçada v3.3.42, com abas de Caçada, Expedição, Extras e Pausas, renovação opcional de jornadas e avisos no Windows ou Android quando aparecer uma verificação.
 
 ## Resposta da automação
 
@@ -18,7 +18,7 @@ A caçada e o Boss reagem às mudanças da interface, agrupadas em 150 ms. A cad
 ## Usar
 
 - Informe o nome exato da criatura disponível na região aberta.
-- Escolha o vigor mínimo para atacar e o modo de recuperação.
+- Escolha o vigor mínimo para atacar (de 0 a 100%) e o modo de recuperação. O bot não exige um mínimo fixo de 30%; o botão do jogo precisa estar disponível para atacar.
 - Escolha até qual porcentagem de vigor usar a poção comum. Para usar a maior, ative o controle de fadiga.
 - Ative **Poupar poções** e informe a **Margem para esperar (%)**.
 - Para usar na VPS, marque **Continuar em segundo plano** antes de clicar em Iniciar.

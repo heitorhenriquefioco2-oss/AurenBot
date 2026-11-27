@@ -54,6 +54,11 @@ const root=path.join(__dirname,'..');
  try{
  await test('recupera vigor baixo apenas com a comum, sem gastar maior',async t=>{await t.start();await t.tick(2200);assert.equal((await t.counts()).minor,1);assert.equal((await t.counts()).major,0);},{hp:20});
  await test('com vigor suficiente ataca sem gastar poções quando fadiga está segura',async t=>{await t.start();await t.tick(2200);assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});},{hp:100,f:98});
+ for(const minimo of ['0','29,5'])await test('inicia com vigor mínimo configurado abaixo de 30%: '+minimo,async t=>{
+  await t.start();await t.tick(2200);
+  assert.equal(await t.p.locator('#iniciar').isDisabled(),true);
+  assert.deepEqual(await t.counts(),{attack:1,major:0,minor:0,close:0});
+ },{hp:60,f:40,prefs:{atacar:minimo},flags:{directResult:true}});
  await test('separa fadiga atual, previsão, custo e total de caçadas do exemplo',async t=>{await t.open();const d=await t.diag();assert.equal(d.fadiga,122);assert.deepEqual(d.previsaoFadiga,{atual:122,depoisMaior:107});assert.equal(d.decisao,'reduzirFadiga');},{f:122,prefs:{limiteFadiga:'120'}});
  await test('aceita pontos de fadiga acima de 100 e milhares no formato brasileiro',async t=>{await t.open();assert.equal((await t.diag()).fadiga,1234);await t.start();await t.tick(2200);assert.equal((await t.counts()).major,1);},{f:1234,prefs:{limiteFadiga:'1200'}});
  await test('reduz antes que a próxima vitória alcance exatamente o limite',async t=>{await t.start();await t.tick(2200);assert.equal((await t.counts()).major,1);assert.equal((await t.counts()).attack,0);assert.equal((await t.counts()).minor,0);},{f:99,hp:60});
